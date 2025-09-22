@@ -20,8 +20,10 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
   // Load media for this site
   useEffect(() => {
     if (feature.id) {
+      console.log('Loading media for site:', feature.id);
       setLoadingMedia(true);
       getSiteMedia(feature.id).then((mediaList) => {
+        console.log('Media loaded:', mediaList);
         setMedia(mediaList);
       }).catch((error) => {
         console.error('Error loading media:', error);
