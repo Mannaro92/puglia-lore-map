@@ -4,6 +4,7 @@ import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
 import { LayerPanel } from '@/components/map/LayerPanel'
 import { SearchBox } from '@/components/map/SearchBox'
 import { LoginModal } from '@/components/auth/LoginModal'
+import { FeatureInfoPanel } from '@/components/panels/FeatureInfoPanel'
 import { Button } from '@/components/ui/button'
 import { LogIn, Edit3, LogOut } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
@@ -117,30 +118,13 @@ export default function MapPage() {
         
         {/* Feature Info Panel (if feature selected) */}
         {selectedFeature && (
-          <div className="absolute top-20 right-4 w-80 bg-white rounded-lg shadow-lg border p-4 z-10">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-bold text-lg">{selectedFeature.properties.toponimo}</h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setSelectedFeature(null)}
-              >
-                ✕
-              </Button>
+          <div className="absolute top-20 right-4 w-80 z-10">
+            <div className="bg-background border rounded-lg shadow-lg max-h-[70vh] overflow-hidden">
+              <FeatureInfoPanel 
+                feature={selectedFeature}
+                onClose={() => setSelectedFeature(null)}
+              />
             </div>
-            <p className="text-sm text-gray-600 mb-3">
-              {selectedFeature.properties.descrizione}
-            </p>
-            {user && selectedFeature.properties.is_owner && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate(`/edit?site=${selectedFeature.properties.id}`)}
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Modifica
-              </Button>
-            )}
           </div>
         )}
       </div>

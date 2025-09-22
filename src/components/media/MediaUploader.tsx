@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
-import { uploadPoiImage, getSessionId, insertMedia, getSiteMedia, type MediaItem, compressImage } from '@/lib/media'
+import { uploadPoiImage, getSessionId, insertMedia, getSiteMedia, deleteMedia, type MediaItem, compressImage } from '@/lib/media'
 import { supabase } from '@/integrations/supabase/client'
 import { Image as ImageIcon, Upload, X } from 'lucide-react'
 
@@ -37,6 +37,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFile
   useEffect(() => {
     onTempFilesChange?.(tempFiles)
   }, [tempFiles, onTempFilesChange])
+
+  const handleDelete = async (mediaId: string) => {
+    try {
+      await deleteMedia(mediaId); // Usa la funzione della libreria che elimina sia DB che storage
+      toast({ title: 'Immagine eliminata' });
+      await loadMedia(); // Ricarica la lista
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Errore eliminazione', description: e.message, variant: 'destructive' });
+    }
+  };
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -132,8 +143,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFile
                 const { data } = supabase.storage.from('poi-media').getPublicUrl(m.storage_path)
                 const url = data.publicUrl
                 return (
-                  <div key={m.id} className="rounded overflow-hidden border">
+                  <div key={m.id} className="rounded overflow-hidden border relative group">
                     <img src={url} alt={m.titolo || 'Immagine POI'} className="w-full h-32 object-cover" />
+                    {/* X per eliminare in alto a destra */}
+                    <button
+                      onClick={() => handleDelete(m.id)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Elimina immagine"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                     <div className="p-2 text-xs truncate">{m.titolo || m.storage_path.split('/').pop()}</div>
                   </div>
                 )
