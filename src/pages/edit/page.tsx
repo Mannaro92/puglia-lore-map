@@ -5,8 +5,20 @@ import { PoiForm } from '@/components/poi/PoiForm'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { LogOut, Edit, Plus, MapPin } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
+
+interface UserSite {
+  id: string
+  toponimo: string
+  descrizione: string
+  stato_validazione: 'draft' | 'published' | 'review'
+  created_at: string
+  updated_at: string
+}
 
 export default function EditPage() {
   const navigate = useNavigate()
@@ -17,6 +29,9 @@ export default function EditPage() {
   const [coordinates, setCoordinates] = useState<{ lon: number; lat: number } | null>(null)
   const [clickToPlaceMode, setClickToPlaceMode] = useState(false)
   const [focusSiteId, setFocusSiteId] = useState<string | null>(null)
+  const [userSites, setUserSites] = useState<UserSite[]>([])
+  const [loadingSites, setLoadingSites] = useState(true)
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(siteId)
 
   useEffect(() => {
     // Check authentication
@@ -27,6 +42,7 @@ export default function EditPage() {
         return
       }
       setUser(user)
+      loadUserSites() // Load sites after authentication
     }
     
     checkAuth()
@@ -37,11 +53,36 @@ export default function EditPage() {
         navigate('/')
       } else {
         setUser(session.user)
+        loadUserSites()
       }
     })
     
     return () => subscription.unsubscribe()
   }, [navigate])
+
+  // Load user's sites
+  const loadUserSites = async () => {
+    try {
+      setLoadingSites(true)
+      const { data, error } = await supabase
+        .from('sites')
+        .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at')
+        .eq('created_by', (await supabase.auth.getUser()).data.user?.id)
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+      setUserSites(data || [])
+    } catch (error: any) {
+      console.error('Error loading user sites:', error)
+      toast({
+        title: 'Errore caricamento POI',
+        description: error.message,
+        variant: 'destructive'
+      })
+    } finally {
+      setLoadingSites(false)
+    }
+  }
 
   const handleMapClick = (lngLat: { lng: number; lat: number }) => {
     setCoordinates({ lon: lngLat.lng, lat: lngLat.lat })
@@ -54,16 +95,50 @@ export default function EditPage() {
 
   const handleSave = (savedSiteId: string) => {
     setFocusSiteId(savedSiteId)
-    // Navigate back to home with focus parameter
-    navigate(`/?focus=${savedSiteId}`)
+    // Refresh the sites list and select the saved site
+    loadUserSites()
+    setSelectedSiteId(savedSiteId)
+    toast({
+      title: 'POI salvato',
+      description: 'Il POI è stato salvato con successo'
+    })
   }
 
   const handleCancel = () => {
-    navigate('/')
+    setSelectedSiteId(null)
+    setCoordinates(null)
   }
 
   const handleDelete = () => {
-    navigate('/')
+    loadUserSites() // Refresh list after deletion
+    setSelectedSiteId(null)
+    setCoordinates(null)
+  }
+
+  const handleSelectSite = (site: UserSite) => {
+    setSelectedSiteId(site.id)
+    // Update URL without page reload
+    window.history.replaceState({}, '', `/edit?site=${site.id}`)
+  }
+
+  const handleCreateNew = () => {
+    setSelectedSiteId(null)
+    setCoordinates(null)
+    // Update URL to remove site parameter
+    window.history.replaceState({}, '', '/edit')
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'published':
+        return <Badge variant="default" className="bg-green-500">Pubblicato</Badge>
+      case 'draft':
+        return <Badge variant="secondary">Bozza</Badge>
+      case 'review':
+        return <Badge variant="outline">In revisione</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
   }
 
   const handleLogout = async () => {
@@ -101,12 +176,75 @@ export default function EditPage() {
         </div>
       </header>
 
-      {/* Split view */}
+      {/* Three-column layout: sidebar, form, map */}
       <div className="flex h-[calc(100vh-3.5rem)]">
-        {/* Left panel - Form */}
-        <div className="w-1/2 border-r bg-background">
+        {/* Left sidebar - POI List */}
+        <div className="w-80 border-r bg-background">
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">I tuoi POI</h2>
+              <Button
+                onClick={handleCreateNew}
+                size="sm"
+                className="gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Nuovo
+              </Button>
+            </div>
+          </div>
+          
+          <ScrollArea className="h-[calc(100vh-7rem)]">
+            <div className="p-4 space-y-3">
+              {loadingSites ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-pulse text-sm">Caricamento POI...</div>
+                </div>
+              ) : userSites.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nessun POI creato</p>
+                  <p className="text-xs">Clicca "Nuovo" per iniziare</p>
+                </div>
+              ) : (
+                userSites.map((site) => (
+                  <Card
+                    key={site.id}
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedSiteId === site.id ? 'ring-2 ring-blue-500 shadow-md' : ''
+                    }`}
+                    onClick={() => handleSelectSite(site)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-sm leading-tight">
+                          {site.toponimo}
+                        </CardTitle>
+                        <Edit className="w-3 h-3 opacity-50 flex-shrink-0 ml-2" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                        {site.descrizione}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        {getStatusBadge(site.stato_validazione)}
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(site.updated_at).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Center panel - Form */}
+        <div className="flex-1 border-r bg-background">
           <PoiForm
-            siteId={siteId || undefined}
+            siteId={selectedSiteId || undefined}
             coordinates={coordinates}
             onCoordinatesChange={setCoordinates}
             onSave={handleSave}
