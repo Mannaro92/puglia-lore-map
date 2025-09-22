@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, MapPin, Clock, Tag, Book, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { PoiMedia, type PoiMediaItem } from "./PoiMedia";
 
 // Normalizza l'ID del sito dal feature
@@ -39,6 +41,8 @@ interface FeatureInfoPanelProps {
 }
 
 export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const properties = feature.properties || {};
   const [media, setMedia] = useState<PoiMediaItem[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
@@ -107,6 +111,21 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
 
     loadSiteMedia();
   }, [feature]);
+
+  const handleSchedaCompleta = async () => {
+    const siteId = getSiteIdFromFeature(feature);
+    if (!siteId) {
+      toast({ title: 'Errore', description: 'ID del sito non trovato', variant: 'destructive' });
+      return;
+    }
+
+    if (!isUserLoggedIn) {
+      toast({ title: 'Accesso richiesto', description: 'Devi essere loggato per modificare il POI' });
+      return;
+    }
+
+    navigate(`/edit?site=${siteId}`);
+  };
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
@@ -270,7 +289,7 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
 
       {/* Action Buttons */}
       <div className="space-y-2 pt-2">
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full" onClick={handleSchedaCompleta}>
           <ExternalLink className="w-3 h-3 mr-2" />
           Scheda Completa
         </Button>
