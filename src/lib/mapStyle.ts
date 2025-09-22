@@ -228,6 +228,37 @@ export const createMapStyle = (
         }
       },
       
+      // Sites - labels (zoom-dependent text size)
+      {
+        id: 'sites-labels',
+        type: 'symbol',
+        source: 'sites',
+        'source-layer': 'sites',
+        layout: {
+          visibility: layerVisibility.sites ? 'visible' : 'none',
+          'text-field': ['get', 'toponimo'],
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            8, 8,
+            12, 12,
+            16, 16,
+            20, 20
+          ],
+          'text-offset': [0, 1.5],
+          'text-anchor': 'top'
+        },
+        paint: {
+          'text-color': 'hsl(0, 0%, 20%)',
+          'text-halo-color': 'hsl(0, 0%, 100%)',
+          'text-halo-width': 1,
+          'text-opacity': layerOpacity.sites
+        },
+        minzoom: 10
+      },
+      
       // Highlight layer for hover/selection
       {
         id: 'sites-highlight',

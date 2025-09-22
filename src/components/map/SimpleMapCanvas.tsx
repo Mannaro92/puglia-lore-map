@@ -71,7 +71,15 @@ export function SimpleMapCanvas({
             layout: {
               "text-field": "{toponimo}",
               "text-font": ["Noto Sans Regular"],
-              "text-size": 12,
+              "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                8, 8,
+                12, 12,
+                16, 16,
+                20, 20
+              ],
               "text-offset": [0, 1.5],
               "text-anchor": "top"
             },
