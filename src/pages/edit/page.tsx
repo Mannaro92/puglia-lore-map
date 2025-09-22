@@ -41,10 +41,16 @@ export default function EditPage() {
     console.log('🎯 selectedSiteId changed to:', selectedSiteId)
   }, [selectedSiteId])
 
-  // Sync selectedSiteId with URL parameter
+  // Sync selectedSiteId with URL parameter, but preserve "new" mode ('')
   useEffect(() => {
     const currentSiteId = searchParams.get('site')
     console.log('🔗 URL siteId changed to:', currentSiteId)
+    if (currentSiteId === null) {
+      // If we're in creation mode (''), don't override
+      if (selectedSiteId === '') return
+      if (selectedSiteId !== null) setSelectedSiteId(null)
+      return
+    }
     if (currentSiteId !== selectedSiteId) {
       setSelectedSiteId(currentSiteId)
     }
