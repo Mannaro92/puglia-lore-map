@@ -236,9 +236,19 @@ export function PoiForm({
     
     setLoading(true)
     try {
+      // Ensure UUID arrays are properly formatted (no extra quotes/encoding)
       const payload = {
         ...formData,
-        coordinates: coordinates
+        coordinates: coordinates,
+        // Explicitly ensure UUID arrays are clean strings
+        cronologia_ids: formData.cronologia_ids.filter(id => id),
+        definizione_ids: formData.definizione_ids.filter(id => id),
+        tipo_rinvenimento_ids: formData.tipo_rinvenimento_ids.filter(id => id),
+        grado_esplorazione_ids: formData.grado_esplorazione_ids.filter(id => id),
+        strutture_ids: formData.strutture_ids.filter(id => id),
+        contesti_ids: formData.contesti_ids.filter(id => id),
+        indicatori_ids: formData.indicatori_ids.filter(id => id),
+        ambiti_ids: formData.ambiti_ids.filter(id => id)
       }
       
       const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload })
