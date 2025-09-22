@@ -46,11 +46,11 @@ interface FormData {
   ambiti_ids: string[]
 }
 
-export function PoiForm({ 
-  siteId, 
-  coordinates, 
+export function PoiForm({
+  siteId,
+  coordinates,
   onCoordinatesChange,
-  onSave, 
+  onSave,
   onCancel, 
   onDelete,
   onClickToPlace,
@@ -60,6 +60,43 @@ export function PoiForm({
   const [lookups, setLookups] = useState<LookupData>({})
   const [loadingLookups, setLoadingLookups] = useState(true)
   
+  // Controlled string inputs for coordinates
+  const [latStr, setLatStr] = useState<string>('')
+  const [lonStr, setLonStr] = useState<string>('')
+  
+  // Sync string inputs with coordinates prop
+  useEffect(() => {
+    if (coordinates?.lat != null) {
+      setLatStr(String(coordinates.lat))
+    } else {
+      setLatStr('')
+    }
+  }, [coordinates?.lat])
+  
+  useEffect(() => {
+    if (coordinates?.lon != null) {
+      setLonStr(String(coordinates.lon))  
+    } else {
+      setLonStr('')
+    }
+  }, [coordinates?.lon])
+
+  // Parse number from string, supporting comma as decimal separator
+  const parseCoordinate = (value: string) => {
+    const cleaned = value.replace(',', '.')
+    const num = Number(cleaned)
+    return Number.isFinite(num) ? num : null
+  }
+
+  // Handle coordinate input blur - update coordinates when user finishes editing
+  const handleCoordinateBlur = () => {
+    const lat = parseCoordinate(latStr)
+    const lon = parseCoordinate(lonStr)
+    if (lat != null && lon != null) {
+      onCoordinatesChange?.({ lat, lon })
+    }
+  }
+
   const [formData, setFormData] = useState<FormData>({
     toponimo: '',
     descrizione: '',
@@ -303,15 +340,10 @@ export function PoiForm({
                 id="latitude"
                 type="number"
                 step="any"
-                value={coordinates?.lat || ''}
-                onChange={(e) => {
-                  const lat = parseFloat(e.target.value)
-                  if (!isNaN(lat) && coordinates) {
-                    onCoordinatesChange?.({ lat, lon: coordinates.lon })
-                  } else if (!isNaN(lat)) {
-                    onCoordinatesChange?.({ lat, lon: 0 })
-                  }
-                }}
+                inputMode="decimal"
+                value={latStr}
+                onChange={(e) => setLatStr(e.target.value)}
+                onBlur={handleCoordinateBlur}
                 placeholder="es. 41.123456"
               />
             </div>
@@ -322,15 +354,10 @@ export function PoiForm({
                 id="longitude"
                 type="number"
                 step="any"
-                value={coordinates?.lon || ''}
-                onChange={(e) => {
-                  const lon = parseFloat(e.target.value)
-                  if (!isNaN(lon) && coordinates) {
-                    onCoordinatesChange?.({ lat: coordinates.lat, lon })
-                  } else if (!isNaN(lon)) {
-                    onCoordinatesChange?.({ lat: 0, lon })
-                  }
-                }}
+                inputMode="decimal"
+                value={lonStr}
+                onChange={(e) => setLonStr(e.target.value)}
+                onBlur={handleCoordinateBlur}
                 placeholder="es. 16.123456"
               />
             </div>
