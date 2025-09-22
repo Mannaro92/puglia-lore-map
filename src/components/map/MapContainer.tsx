@@ -268,24 +268,7 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
     }
   }
 
-  // Update map center and zoom when mapState changes externally
-  useEffect(() => {
-    if (map.current) {
-      const currentCenter = map.current.getCenter();
-      const currentZoom = map.current.getZoom();
-      
-      if (
-        Math.abs(currentCenter.lng - mapState.center[0]) > 0.001 ||
-        Math.abs(currentCenter.lat - mapState.center[1]) > 0.001 ||
-        Math.abs(currentZoom - mapState.zoom) > 0.1
-      ) {
-        map.current.jumpTo({
-          center: mapState.center,
-          zoom: mapState.zoom
-        });
-      }
-    }
-  }, [mapState.center, mapState.zoom]);
+  // Removed automatic map synchronization to prevent unwanted movement
 
   return (
     <div 
