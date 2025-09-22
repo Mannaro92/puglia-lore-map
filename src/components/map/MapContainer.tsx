@@ -183,9 +183,22 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
 
       // Click handler for sites
       map.current.on('click', 'sites-circles', (e) => {
+        console.log('Site clicked:', e.features[0]); // Debug log
         if (e.features && e.features[0]) {
           onFeatureClick(e.features[0]);
         }
+      });
+
+      // Debug: log when layer is loaded
+      map.current.on('sourcedata', (e) => {
+        if (e.sourceId === 'sites' && e.isSourceLoaded) {
+          console.log('Sites source loaded');
+        }
+      });
+
+      // Debug: log tile errors
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
       });
 
       // Change cursor on hover
@@ -268,7 +281,26 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
     }
   }
 
-  // Removed automatic map synchronization to prevent unwanted movement
+  // Update map center and zoom when explicitly changed (e.g., from search)
+  useEffect(() => {
+    if (map.current) {
+      const currentCenter = map.current.getCenter();
+      const currentZoom = map.current.getZoom();
+      
+      // Only update if there's a significant difference and it's not from user interaction
+      if (
+        Math.abs(currentCenter.lng - mapState.center[0]) > 0.01 ||
+        Math.abs(currentCenter.lat - mapState.center[1]) > 0.01 ||
+        Math.abs(currentZoom - mapState.zoom) > 0.5
+      ) {
+        map.current.easeTo({
+          center: mapState.center,
+          zoom: mapState.zoom,
+          duration: 1000
+        });
+      }
+    }
+  }, [mapState.center, mapState.zoom]);
 
   return (
     <div 

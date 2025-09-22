@@ -70,48 +70,58 @@ export function WebGISLayout() {
 
           {/* Right Sidebar */}
           <div className="w-80 h-full border-l border-border bg-panel-bg flex flex-col">
-            {/* Panel Tabs */}
-            <div className="flex border-b border-panel-border">
-              <button
-                onClick={() => setActivePanel(activePanel === 'layers' ? null : 'layers')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activePanel === 'layers' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-layer-hover'
-                }`}
-              >
-                Layer
-              </button>
-              <button
-                onClick={() => setActivePanel(activePanel === 'feature' ? null : 'feature')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activePanel === 'feature' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-layer-hover'
-                }`}
-                disabled={!mapState.selectedFeature}
-              >
-                Info Sito
-              </button>
-            </div>
+        {/* Panel Tabs */}
+        <div className="flex border-b border-panel-border bg-panel-bg">
+          <button
+            onClick={() => setActivePanel(activePanel === 'layers' ? null : 'layers')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activePanel === 'layers' 
+                ? 'bg-primary text-primary-foreground border-b-2 border-primary' 
+                : 'hover:bg-layer-hover text-foreground'
+            }`}
+          >
+            Layer
+          </button>
+          <button
+            onClick={() => setActivePanel(activePanel === 'feature' ? null : 'feature')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activePanel === 'feature' 
+                ? 'bg-primary text-primary-foreground border-b-2 border-primary' 
+                : 'hover:bg-layer-hover text-foreground'
+            } ${!mapState.selectedFeature ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!mapState.selectedFeature}
+          >
+            Info Sito
+          </button>
+        </div>
 
             {/* Panel Content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden bg-background">
               {activePanel === 'layers' && (
-                <LayerPanel 
-                  mapState={mapState}
-                  onMapStateChange={updateMapState}
-                />
+                <div className="h-full">
+                  <LayerPanel 
+                    mapState={mapState}
+                    onMapStateChange={updateMapState}
+                  />
+                </div>
               )}
               
               {activePanel === 'feature' && mapState.selectedFeature && (
-                <FeatureInfoPanel 
-                  feature={mapState.selectedFeature}
-                  onClose={() => {
-                    updateMapState({ selectedFeature: null });
-                    setActivePanel('layers');
-                  }}
-                />
+                <div className="h-full">
+                  <FeatureInfoPanel 
+                    feature={mapState.selectedFeature}
+                    onClose={() => {
+                      updateMapState({ selectedFeature: null });
+                      setActivePanel('layers');
+                    }}
+                  />
+                </div>
+              )}
+              
+              {!activePanel && (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p className="text-sm">Seleziona un pannello per iniziare</p>
+                </div>
               )}
             </div>
           </div>
