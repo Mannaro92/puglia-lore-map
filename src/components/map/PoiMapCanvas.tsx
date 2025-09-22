@@ -191,29 +191,44 @@ export function PoiMapCanvas({
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     
-    // Remove existing marker
-    if (clickMarker) {
-      clickMarker.remove()
-      setClickMarker(null)
-    }
-    
-    // Add new marker if coordinates exist
+    // If coordinates exist, update or create marker
     if (coordinates) {
-      const marker = new maplibregl.Marker({
-        color: '#e63946',
-        draggable: true
-      })
-        .setLngLat([coordinates.lon, coordinates.lat])
-        .addTo(mapRef.current)
-      
-      marker.on('dragend', () => {
-        const lngLat = marker.getLngLat()
-        onMapClick?.({ lng: lngLat.lng, lat: lngLat.lat })
-      })
-      
-      setClickMarker(marker)
+      if (clickMarker) {
+        // Update existing marker position
+        clickMarker.setLngLat([coordinates.lon, coordinates.lat])
+      } else {
+        // Create new marker
+        const marker = new maplibregl.Marker({
+          color: '#e63946',
+          draggable: true
+        })
+          .setLngLat([coordinates.lon, coordinates.lat])
+          .addTo(mapRef.current)
+        
+        // Handle marker drag
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat()
+          console.log('🎯 Marker dragged to:', lngLat)
+          onMapClick?.({ lng: lngLat.lng, lat: lngLat.lat })
+        })
+        
+        // Handle marker drag during movement for real-time feedback
+        marker.on('drag', () => {
+          const lngLat = marker.getLngLat()
+          // Optional: provide real-time feedback during drag
+          // onMapClick?.({ lng: lngLat.lng, lat: lngLat.lat })
+        })
+        
+        setClickMarker(marker)
+      }
+    } else {
+      // Remove marker if no coordinates
+      if (clickMarker) {
+        clickMarker.remove()
+        setClickMarker(null)
+      }
     }
-  }, [coordinates, mapLoaded])
+  }, [coordinates, mapLoaded, onMapClick])
 
   // Focus on specific site
   useEffect(() => {
