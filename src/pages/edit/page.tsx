@@ -169,8 +169,8 @@ export default function EditPage() {
     console.log('➕ Creating new POI')
     setSelectedSiteId(null)
     setCoordinates(null)
-    // Update URL to remove site parameter
-    window.history.replaceState({}, '', '/edit')
+    // Update URL to remove site parameter using navigate for consistency
+    navigate('/edit', { replace: true })
   }
 
   const getStatusBadge = (status: string) => {
@@ -226,7 +226,13 @@ export default function EditPage() {
         {/* Left sidebar - POI List */}
         <div className="w-80 border-r bg-background">
           <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold">I tuoi POI</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">I tuoi POI</h2>
+              <Button onClick={handleCreateNew} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Nuovo
+              </Button>
+            </div>
           </div>
           
           <ScrollArea className="h-[calc(100vh-7rem)]">
@@ -295,8 +301,13 @@ export default function EditPage() {
                 <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">Benvenuto nell'Editor POI</h3>
                 <p className="text-muted-foreground mb-4">
-                  Seleziona un POI esistente dalla lista a sinistra per modificarlo
+                  Seleziona un POI esistente dalla lista a sinistra per modificarlo,<br />
+                  oppure clicca "Nuovo" per crearne uno.
                 </p>
+                <Button onClick={handleCreateNew} size="lg">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Crea Nuovo POI
+                </Button>
               </div>
             </div>
           )}
