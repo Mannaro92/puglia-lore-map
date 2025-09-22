@@ -68,7 +68,10 @@ export default function MapPage() {
         cx: view.lng,
         cy: view.lat,
         xz: view.zoom,
-        ...urlStateToFilters({ defs: filters.definizioni, cron: filters.cronologie, ind: filters.indicatori, amb: filters.ambiti }),
+        defs: filters.definizioni,
+        cron: filters.cronologie,
+        ind: filters.indicatori,
+        amb: filters.ambiti,
         layers: serializeLayerConfig(layerVisibility, layerOpacity)
       })
     }
@@ -113,7 +116,10 @@ export default function MapPage() {
               cx: center[0],
               cy: center[1], 
               xz: zoom,
-              ...urlStateToFilters(filters),
+              defs: filters.definizioni,
+              cron: filters.cronologie,
+              ind: filters.indicatori,
+              amb: filters.ambiti,
               layers: serializeLayerConfig(layerVisibility, layerOpacity)
             })
           }}
