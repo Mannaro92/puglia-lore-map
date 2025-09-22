@@ -1,22 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapCanvas, MapCanvasRef } from '@/components/map/MapCanvas'
-import { MapCanvasTest } from '@/components/map/MapCanvasTest'
-import { MapCanvasPure } from '@/components/map/MapCanvasPure'
 import { LayerPanel } from '@/components/map/LayerPanel'
 import { SearchBox } from '@/components/map/SearchBox'
+import { LoginModal } from '@/components/auth/LoginModal'
+import { Button } from '@/components/ui/button'
+import { LogIn, Edit3, LogOut } from 'lucide-react'
 import { FUNCTIONS_BASE, DEFAULT_BBOX, supabase } from '@/lib/supabaseClient'
 import { MapFilters, LayerOpacity } from '@/lib/mapStyle'
 import { parseBbox } from '@/lib/tiles'
 import { readUrlState, writeUrlState, parseLayerConfig, serializeLayerConfig, urlStateToFilters } from '@/lib/urlState'
 import { useToast } from '@/hooks/use-toast'
+import type { User } from '@supabase/supabase-js'
 
 export default function MapPage() {
   console.log('🗺️ MapPage component mounting')
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const mapRef = useRef<MapCanvasRef>(null)
   const { toast } = useToast()
   
+  // Auth state
+  const [user, setUser] = useState<User | null>(null)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
+  
   // Initialize state from URL
   const urlState = readUrlState()
+  const focusSiteId = searchParams.get('focus')
   const initialBbox = parseBbox(DEFAULT_BBOX)
   const { visibility: initialVisibility, opacity: initialOpacity } = 
     parseLayerConfig(urlState.layers || '')
@@ -41,6 +51,26 @@ export default function MapPage() {
   const [layerVisibility, setLayerVisibility] = useState(defaultVisibility)
   const [layerOpacity, setLayerOpacity] = useState<LayerOpacity>(defaultOpacity)
   const [vocabularies, setVocabularies] = useState<any>(null)
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    
+    checkAuth()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      if (event === 'SIGNED_IN') {
+        setLoginModalOpen(false)
+      }
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Load vocabularies
   useEffect(() => {
@@ -77,6 +107,16 @@ export default function MapPage() {
     loadVocabularies()
   }, [])
 
+  // Focus on specific site if in URL
+  useEffect(() => {
+    if (focusSiteId && mapRef.current) {
+      // Delay to ensure map is loaded
+      setTimeout(() => {
+        mapRef.current?.flyTo(16.6, 41.1, 14) // Fallback center, real coordinates should be fetched
+      }, 1000)
+    }
+  }, [focusSiteId])
+
   // Update URL when state changes
   useEffect(() => {
     const view = mapRef.current?.getCurrentView()
@@ -101,6 +141,18 @@ export default function MapPage() {
     }
   }
 
+  const handleEditMode = () => {
+    if (user) {
+      navigate('/edit')
+    } else {
+      setLoginModalOpen(true)
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
+
   const handleSearchSelect = (result: any) => {
     if ('lat' in result) {
       // Geocode result
@@ -115,77 +167,111 @@ export default function MapPage() {
     }
   }
 
-  // Test mode - uncomment to test pure OSM
-  // return <MapCanvasPure />
-
   return (
-    <div className="h-screen w-full flex relative bg-[hsl(var(--map-bg))]">
-      {/* Map Canvas */}
-      <div className="flex-1 relative">
-        <MapCanvas
-          ref={mapRef}
-          supabaseUrl={'https://qdjyzctflpywkblpkniz.supabase.co'}
-          supabaseKey={'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8'}
-          initialCenter={urlState.cx && urlState.cy ? [urlState.cx, urlState.cy] : [initialBbox[0] + (initialBbox[2] - initialBbox[0]) / 2, initialBbox[1] + (initialBbox[3] - initialBbox[1]) / 2]}
-          initialZoom={urlState.xz || 8}
-          filters={filters}
+    <div className="w-full h-screen flex relative">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container flex h-14 items-center justify-between">
+          <h1 className="text-xl font-bold">MEMOIR GIS</h1>
+          
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user.email}
+                </span>
+                <Button variant="outline" size="sm" onClick={handleEditMode}>
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Editor
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setLoginModalOpen(true)}>
+                <LogIn className="w-4 h-4 mr-2" />
+                Login
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 relative pt-14">
+        {/* Map Canvas */}
+        <div className="flex-1 relative">
+          <MapCanvas
+            ref={mapRef}
+            supabaseUrl={'https://qdjyzctflpywkblpkniz.supabase.co'}
+            supabaseKey={'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8'}
+            initialCenter={urlState.cx && urlState.cy ? [urlState.cx, urlState.cy] : [16.6, 41.1]}
+            initialZoom={urlState.xz || 8}
+            filters={filters}
+            layerVisibility={layerVisibility}
+            layerOpacity={layerOpacity}
+            onFeatureClick={handleFeatureClick}
+            onMoveEnd={(center, zoom) => {
+              writeUrlState({
+                cx: center[0],
+                cy: center[1], 
+                xz: zoom,
+                defs: filters.definizioni,
+                cron: filters.cronologie,
+                ind: filters.indicatori,
+                amb: filters.ambiti,
+                layers: serializeLayerConfig(layerVisibility, layerOpacity)
+              })
+            }}
+          >
+            {/* Search Box */}
+            <div className="absolute top-4 left-4 w-80 z-10">
+              <SearchBox
+                filters={filters}
+                onResultSelect={handleSearchSelect}
+                onGeocodeSelect={handleSearchSelect}
+              />
+            </div>
+          </MapCanvas>
+        </div>
+
+        {/* Layer Panel */}
+        <LayerPanel
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           layerVisibility={layerVisibility}
           layerOpacity={layerOpacity}
-          onFeatureClick={handleFeatureClick}
-          onMoveEnd={(center, zoom) => {
-            writeUrlState({
-              cx: center[0],
-              cy: center[1], 
-              xz: zoom,
-              defs: filters.definizioni,
-              cron: filters.cronologie,
-              ind: filters.indicatori,
-              amb: filters.ambiti,
-              layers: serializeLayerConfig(layerVisibility, layerOpacity)
-            })
+          onLayerToggle={(layerId) => {
+            setLayerVisibility(prev => ({
+              ...prev,
+              [layerId]: !prev[layerId]
+            }))
+            mapRef.current?.toggleLayer(layerId)
           }}
-        >
-          {/* Search Box */}
-          <div className="absolute top-4 left-4 w-80 z-10">
-            <SearchBox
-              filters={filters}
-              onResultSelect={handleSearchSelect}
-              onGeocodeSelect={handleSearchSelect}
-            />
-          </div>
-        </MapCanvas>
+          onOpacityChange={(layerId, opacity) => {
+            setLayerOpacity(prev => ({
+              ...prev,
+              [layerId]: opacity
+            }))
+            mapRef.current?.setLayerOpacity(layerId, opacity)
+          }}
+          onFiltersChange={(newFilters) => {
+            setFilters(newFilters)
+            mapRef.current?.setFilters(newFilters)
+          }}
+          selectedFeature={selectedFeature}
+          onFeatureClose={() => {
+            setSelectedFeature(null)
+            setActiveTab('layers')
+          }}
+          vocabularies={vocabularies}
+        />
       </div>
 
-      {/* Layer Panel */}
-      <LayerPanel
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        layerVisibility={layerVisibility}
-        layerOpacity={layerOpacity}
-        onLayerToggle={(layerId) => {
-          setLayerVisibility(prev => ({
-            ...prev,
-            [layerId]: !prev[layerId]
-          }))
-          mapRef.current?.toggleLayer(layerId)
-        }}
-        onOpacityChange={(layerId, opacity) => {
-          setLayerOpacity(prev => ({
-            ...prev,
-            [layerId]: opacity
-          }))
-          mapRef.current?.setLayerOpacity(layerId, opacity)
-        }}
-        onFiltersChange={(newFilters) => {
-          setFilters(newFilters)
-          mapRef.current?.setFilters(newFilters)
-        }}
-        selectedFeature={selectedFeature}
-        onFeatureClose={() => {
-          setSelectedFeature(null)
-          setActiveTab('layers')
-        }}
-        vocabularies={vocabularies}
+      <LoginModal 
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        onSuccess={handleEditMode}
       />
     </div>
   )

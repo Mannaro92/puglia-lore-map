@@ -315,6 +315,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       province: {
         Row: {
           bbox: unknown | null
@@ -977,6 +1001,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       geography_columns: {
@@ -1507,6 +1552,13 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       json: {
         Args: { "": unknown }
         Returns: Json
@@ -1730,6 +1782,18 @@ export type Database = {
       }
       postgis_wagyu_version: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      rpc_get_lookups: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      rpc_list_sites_bbox: {
+        Args: { bbox_geom?: unknown; include_drafts?: boolean }
+        Returns: Json
+      }
+      rpc_upsert_site: {
+        Args: { payload: Json }
         Returns: string
       }
       set_limit: {
@@ -2833,6 +2897,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "editor" | "user"
       stato_validazione: "draft" | "review" | "published"
       tipo_import: "csv" | "geojson" | "shp"
       tipo_layer: "vector" | "raster"
@@ -2972,6 +3037,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "editor", "user"],
       stato_validazione: ["draft", "review", "published"],
       tipo_import: ["csv", "geojson", "shp"],
       tipo_layer: ["vector", "raster"],
