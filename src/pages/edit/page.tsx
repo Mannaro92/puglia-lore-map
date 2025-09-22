@@ -25,6 +25,8 @@ export default function EditPage() {
   const [searchParams] = useSearchParams()
   const siteId = searchParams.get('site')
   
+  console.log('🚀 EditPage mounted, siteId from URL:', siteId)
+  
   const [user, setUser] = useState<User | null>(null)
   const [coordinates, setCoordinates] = useState<{ lon: number; lat: number } | null>(null)
   const [clickToPlaceMode, setClickToPlaceMode] = useState(false)
@@ -32,6 +34,20 @@ export default function EditPage() {
   const [userSites, setUserSites] = useState<UserSite[]>([])
   const [loadingSites, setLoadingSites] = useState(true)
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(siteId)
+
+  // Debug effect to track selectedSiteId changes
+  useEffect(() => {
+    console.log('🎯 selectedSiteId changed to:', selectedSiteId)
+  }, [selectedSiteId])
+
+  // Sync selectedSiteId with URL parameter
+  useEffect(() => {
+    const currentSiteId = searchParams.get('site')
+    console.log('🔗 URL siteId changed to:', currentSiteId)
+    if (currentSiteId !== selectedSiteId) {
+      setSelectedSiteId(currentSiteId)
+    }
+  }, [searchParams, selectedSiteId])
 
   useEffect(() => {
     // Check authentication
@@ -64,16 +80,25 @@ export default function EditPage() {
   const loadUserSites = async () => {
     try {
       setLoadingSites(true)
+      console.log('📋 Loading user sites...')
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.log('❌ No user found when loading sites')
+        return
+      }
+      
       const { data, error } = await supabase
         .from('sites')
         .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at')
-        .eq('created_by', (await supabase.auth.getUser()).data.user?.id)
+        .eq('created_by', user.id)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
+      console.log('✅ User sites loaded:', data?.length || 0)
       setUserSites(data || [])
     } catch (error: any) {
-      console.error('Error loading user sites:', error)
+      console.error('💥 Error loading user sites:', error)
       toast({
         title: 'Errore caricamento POI',
         description: error.message,
@@ -116,12 +141,16 @@ export default function EditPage() {
   }
 
   const handleSelectSite = (site: UserSite) => {
+    console.log('🔍 Selecting site:', site.id, site.toponimo)
+    alert(`Selecting site: ${site.toponimo}`) // Test alert
     setSelectedSiteId(site.id)
     // Update URL without page reload
     window.history.replaceState({}, '', `/edit?site=${site.id}`)
   }
 
   const handleCreateNew = () => {
+    console.log('➕ Creating new POI')
+    alert('Creating new POI') // Test alert
     setSelectedSiteId(null)
     setCoordinates(null)
     // Update URL to remove site parameter
