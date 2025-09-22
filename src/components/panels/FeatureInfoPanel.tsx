@@ -1,8 +1,11 @@
-import { X, ExternalLink, MapPin, Clock, Tag, Book } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, ExternalLink, MapPin, Clock, Tag, Book, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getSiteMedia, type MediaItem } from "@/lib/media";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FeatureInfoPanelProps {
   feature: any;
@@ -11,6 +14,22 @@ interface FeatureInfoPanelProps {
 
 export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
   const properties = feature.properties || {};
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+
+  // Load media for this site
+  useEffect(() => {
+    if (feature.id) {
+      setLoadingMedia(true);
+      getSiteMedia(feature.id).then((mediaList) => {
+        setMedia(mediaList);
+      }).catch((error) => {
+        console.error('Error loading media:', error);
+      }).finally(() => {
+        setLoadingMedia(false);
+      });
+    }
+  }, [feature.id]);
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
@@ -47,6 +66,42 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
           <p className="text-sm text-muted-foreground leading-relaxed">
             {properties.descrizione}
           </p>
+        </div>
+      )}
+
+      {/* Media Gallery */}
+      {(media.length > 0 || loadingMedia) && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            <h4 className="text-sm font-medium">Immagini</h4>
+          </div>
+          
+          {loadingMedia ? (
+            <div className="flex items-center justify-center p-4">
+              <div className="text-xs text-muted-foreground">Caricamento immagini...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {media.map((item) => {
+                const { data } = supabase.storage.from('poi-media').getPublicUrl(item.storage_path);
+                return (
+                  <div key={item.id} className="relative group">
+                    <img
+                      src={data.publicUrl}
+                      alt={item.titolo || 'Immagine del sito'}
+                      className="w-full h-20 object-cover rounded border"
+                    />
+                    {item.titolo && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 rounded-b">
+                        <div className="truncate">{item.titolo}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
