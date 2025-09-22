@@ -1,15 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapCanvas, MapCanvasRef } from '@/components/map/MapCanvas'
+import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
 import { LayerPanel } from '@/components/map/LayerPanel'
 import { SearchBox } from '@/components/map/SearchBox'
 import { LoginModal } from '@/components/auth/LoginModal'
 import { Button } from '@/components/ui/button'
 import { LogIn, Edit3, LogOut } from 'lucide-react'
-import { FUNCTIONS_BASE, DEFAULT_BBOX, supabase } from '@/lib/supabaseClient'
-import { MapFilters, LayerOpacity } from '@/lib/mapStyle'
-import { parseBbox } from '@/lib/tiles'
-import { readUrlState, writeUrlState, parseLayerConfig, serializeLayerConfig, urlStateToFilters } from '@/lib/urlState'
+import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import type { User } from '@supabase/supabase-js'
 
@@ -17,40 +14,15 @@ export default function MapPage() {
   console.log('🗺️ MapPage component mounting')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const mapRef = useRef<MapCanvasRef>(null)
   const { toast } = useToast()
   
   // Auth state
   const [user, setUser] = useState<User | null>(null)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   
-  // Initialize state from URL
-  const urlState = readUrlState()
-  const focusSiteId = searchParams.get('focus')
-  const initialBbox = parseBbox(DEFAULT_BBOX)
-  const { visibility: initialVisibility, opacity: initialOpacity } = 
-    parseLayerConfig(urlState.layers || '')
-  
-  // Assicura che i layer siano ON di default per demo
-  const defaultVisibility = { 
-    sites: true, 
-    province: true, 
-    comuni: true,
-    ...initialVisibility
-  }
-  const defaultOpacity = { 
-    sites: 0.6, 
-    province: 0.7, 
-    comuni: 0.5,
-    ...initialOpacity
-  }
-  
-  const [activeTab, setActiveTab] = useState<'layers' | 'info'>('layers')
+  // Map state
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
-  const [filters, setFilters] = useState<MapFilters>(urlStateToFilters(urlState))
-  const [layerVisibility, setLayerVisibility] = useState(defaultVisibility)
-  const [layerOpacity, setLayerOpacity] = useState<LayerOpacity>(defaultOpacity)
-  const [vocabularies, setVocabularies] = useState<any>(null)
+  const focusSiteId = searchParams.get('focus')
 
   // Check authentication status
   useEffect(() => {
@@ -72,73 +44,9 @@ export default function MapPage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load vocabularies
-  useEffect(() => {
-    const loadVocabularies = async () => {
-      try {
-        const [
-          { data: definizioni },
-          { data: cronologie },
-          { data: indicatori },
-          { data: ambiti }
-        ] = await Promise.all([
-          supabase.from('ref_definizione').select('id, label').eq('is_active', true).order('sort_order'),
-          supabase.from('ref_cronologia').select('id, label').eq('is_active', true).order('sort_order'),
-          supabase.from('ref_indicatori_cultuali').select('id, label').eq('is_active', true).order('sort_order'),
-          supabase.from('ref_ambito_cultuale').select('id, label').eq('is_active', true).order('sort_order')
-        ])
-
-        setVocabularies({
-          definizioni: definizioni || [],
-          cronologie: cronologie || [],
-          indicatori: indicatori || [],
-          ambiti: ambiti || []
-        })
-      } catch (error) {
-        console.error('Error loading vocabularies:', error)
-        toast({
-          title: 'Errore',
-          description: 'Impossibile caricare i vocabolari',
-          variant: 'destructive'
-        })
-      }
-    }
-
-    loadVocabularies()
-  }, [])
-
-  // Focus on specific site if in URL
-  useEffect(() => {
-    if (focusSiteId && mapRef.current) {
-      // Delay to ensure map is loaded
-      setTimeout(() => {
-        mapRef.current?.flyTo(16.6, 41.1, 14) // Fallback center, real coordinates should be fetched
-      }, 1000)
-    }
-  }, [focusSiteId])
-
-  // Update URL when state changes
-  useEffect(() => {
-    const view = mapRef.current?.getCurrentView()
-    if (view) {
-      writeUrlState({
-        cx: view.lng,
-        cy: view.lat,
-        xz: view.zoom,
-        defs: filters.definizioni,
-        cron: filters.cronologie,
-        ind: filters.indicatori,
-        amb: filters.ambiti,
-        layers: serializeLayerConfig(layerVisibility, layerOpacity)
-      })
-    }
-  }, [filters, layerVisibility, layerOpacity])
-
   const handleFeatureClick = (feature: any) => {
     setSelectedFeature(feature)
-    if (feature) {
-      setActiveTab('info')
-    }
+    console.log('Feature clicked:', feature.properties)
   }
 
   const handleEditMode = () => {
@@ -154,17 +62,8 @@ export default function MapPage() {
   }
 
   const handleSearchSelect = (result: any) => {
-    if ('lat' in result) {
-      // Geocode result
-      mapRef.current?.flyTo(parseFloat(result.lon), parseFloat(result.lat), 14)
-    } else {
-      // Site result
-      if (result.bbox) {
-        mapRef.current?.fitBounds(result.bbox)
-      } else if (result.centroid) {
-        mapRef.current?.flyTo(result.centroid[0], result.centroid[1], 14)
-      }
-    }
+    console.log('Search result selected:', result)
+    // For now just log, can enhance later with map navigation
   }
 
   return (
@@ -200,72 +99,50 @@ export default function MapPage() {
 
       <div className="flex-1 relative pt-14">
         {/* Map Canvas */}
-        <div className="flex-1 relative">
-          <MapCanvas
-            ref={mapRef}
-            supabaseUrl={'https://qdjyzctflpywkblpkniz.supabase.co'}
-            supabaseKey={'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8'}
-            initialCenter={urlState.cx && urlState.cy ? [urlState.cx, urlState.cy] : [16.6, 41.1]}
-            initialZoom={urlState.xz || 8}
-            filters={filters}
-            layerVisibility={layerVisibility}
-            layerOpacity={layerOpacity}
-            onFeatureClick={handleFeatureClick}
-            onMoveEnd={(center, zoom) => {
-              writeUrlState({
-                cx: center[0],
-                cy: center[1], 
-                xz: zoom,
-                defs: filters.definizioni,
-                cron: filters.cronologie,
-                ind: filters.indicatori,
-                amb: filters.ambiti,
-                layers: serializeLayerConfig(layerVisibility, layerOpacity)
-              })
-            }}
-          >
-            {/* Search Box */}
-            <div className="absolute top-4 left-4 w-80 z-10">
-              <SearchBox
-                filters={filters}
-                onResultSelect={handleSearchSelect}
-                onGeocodeSelect={handleSearchSelect}
-              />
-            </div>
-          </MapCanvas>
-        </div>
-
-        {/* Layer Panel */}
-        <LayerPanel
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          layerVisibility={layerVisibility}
-          layerOpacity={layerOpacity}
-          onLayerToggle={(layerId) => {
-            setLayerVisibility(prev => ({
-              ...prev,
-              [layerId]: !prev[layerId]
-            }))
-            mapRef.current?.toggleLayer(layerId)
-          }}
-          onOpacityChange={(layerId, opacity) => {
-            setLayerOpacity(prev => ({
-              ...prev,
-              [layerId]: opacity
-            }))
-            mapRef.current?.setLayerOpacity(layerId, opacity)
-          }}
-          onFiltersChange={(newFilters) => {
-            setFilters(newFilters)
-            mapRef.current?.setFilters(newFilters)
-          }}
-          selectedFeature={selectedFeature}
-          onFeatureClose={() => {
-            setSelectedFeature(null)
-            setActiveTab('layers')
-          }}
-          vocabularies={vocabularies}
+        <SimpleMapCanvas
+          onFeatureClick={handleFeatureClick}
+          focusSiteId={focusSiteId}
+          initialCenter={[16.6, 41.1]}
+          initialZoom={8}
         />
+        
+        {/* Search Box */}
+        <div className="absolute top-20 left-4 w-80 z-10">
+          <SearchBox
+            filters={{}}
+            onResultSelect={handleSearchSelect}
+            onGeocodeSelect={handleSearchSelect}
+          />
+        </div>
+        
+        {/* Feature Info Panel (if feature selected) */}
+        {selectedFeature && (
+          <div className="absolute top-20 right-4 w-80 bg-white rounded-lg shadow-lg border p-4 z-10">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-bold text-lg">{selectedFeature.properties.toponimo}</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSelectedFeature(null)}
+              >
+                ✕
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              {selectedFeature.properties.descrizione}
+            </p>
+            {user && selectedFeature.properties.is_owner && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate(`/edit?site=${selectedFeature.properties.id}`)}
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Modifica
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <LoginModal 

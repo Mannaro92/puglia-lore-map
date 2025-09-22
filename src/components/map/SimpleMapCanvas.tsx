@@ -1,0 +1,193 @@
+import React, { useRef, useEffect, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { supabase } from '@/integrations/supabase/client'
+
+interface SimpleMapCanvasProps {
+  onFeatureClick?: (feature: any) => void
+  focusSiteId?: string | null
+  initialCenter?: [number, number]
+  initialZoom?: number
+}
+
+export function SimpleMapCanvas({ 
+  onFeatureClick,
+  focusSiteId = null,
+  initialCenter = [16.6, 41.1],
+  initialZoom = 8
+}: SimpleMapCanvasProps) {
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    console.log('🗺️ SimpleMapCanvas initializing...')
+    
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: {
+        version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+        sources: {
+          osm: {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+          },
+          sites: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: []
+            }
+          }
+        },
+        layers: [
+          {
+            id: "osm",
+            type: "raster",
+            source: "osm"
+          },
+          {
+            id: "sites-circles",
+            type: "circle",
+            source: "sites",
+            paint: {
+              "circle-radius": 6,
+              "circle-color": "#e63946",
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#ffffff"
+            }
+          },
+          {
+            id: "sites-labels",
+            type: "symbol",
+            source: "sites",
+            layout: {
+              "text-field": "{toponimo}",
+              "text-font": ["Noto Sans Regular"],
+              "text-size": 12,
+              "text-offset": [0, 1.5],
+              "text-anchor": "top"
+            },
+            paint: {
+              "text-color": "#333",
+              "text-halo-color": "#fff",
+              "text-halo-width": 1
+            }
+          }
+        ]
+      } as any,
+      center: initialCenter,
+      zoom: initialZoom,
+      maxZoom: 18,
+      minZoom: 5
+    })
+
+    // Add controls
+    map.addControl(new maplibregl.NavigationControl(), 'top-right')
+    map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
+
+    mapRef.current = map
+
+    map.on('load', () => {
+      console.log('✅ SimpleMapCanvas loaded successfully')
+      setMapLoaded(true)
+      
+      // Load POI data
+      loadPOIData()
+    })
+
+    // Handle clicks on POI features
+    map.on('click', 'sites-circles', (e) => {
+      if (e.features && e.features.length > 0) {
+        onFeatureClick?.(e.features[0])
+      }
+    })
+
+    map.on('mouseenter', 'sites-circles', () => {
+      map.getCanvas().style.cursor = 'pointer'
+    })
+
+    map.on('mouseleave', 'sites-circles', () => {
+      map.getCanvas().style.cursor = ''
+    })
+
+    map.on('error', (e) => {
+      console.error('❌ SimpleMapCanvas error:', e)
+    })
+
+    return () => {
+      map.remove()
+    }
+  }, [])
+
+  // Load POI data using RPC function
+  const loadPOIData = async () => {
+    if (!mapRef.current) return
+    
+    try {
+      console.log('📡 Loading POI data...')
+      const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
+        bbox_geom: null,
+        include_drafts: false // Only published POIs for public view
+      })
+      
+      if (error) {
+        console.error('❌ Error loading POI data:', error)
+        return
+      }
+      
+      console.log('✅ Loaded POI data:', geojson)
+      
+      const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource
+      if (source && geojson && typeof geojson === 'object') {
+        source.setData(geojson as any)
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in loadPOIData:', error)
+    }
+  }
+
+  // Focus on specific site
+  useEffect(() => {
+    if (!mapRef.current || !focusSiteId || !mapLoaded) return
+    
+    const loadAndFocusSite = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sites')
+          .select('geom_point')
+          .eq('id', focusSiteId)
+          .single()
+          
+        if (error || !data?.geom_point) return
+        
+        const coords = (data.geom_point as any)?.coordinates
+        if (coords && Array.isArray(coords) && coords.length >= 2) {
+          mapRef.current!.flyTo({
+            center: [coords[0], coords[1]],
+            zoom: 14,
+            duration: 2000
+          })
+        }
+      } catch (error) {
+        console.error('Error focusing on site:', error)
+      }
+    }
+    
+    loadAndFocusSite()
+  }, [focusSiteId, mapLoaded])
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="absolute inset-0 bg-gray-100"
+      style={{ minHeight: '100%' }}
+    />
+  )
+}

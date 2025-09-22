@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapCanvas } from '@/components/map/MapCanvas'
+import { PoiMapCanvas } from '@/components/map/PoiMapCanvas'
 import { PoiForm } from '@/components/poi/PoiForm'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -119,27 +119,22 @@ export default function EditPage() {
         
         {/* Right panel - Map */}
         <div className="w-1/2 relative">
-          {/* Use a simple div for now since MapCanvas doesn't support click mode */}
-          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-lg font-semibold">Mappa POI Editor</p>
-              <p className="text-sm text-gray-600 mt-2">
-                Mappa in fase di implementazione per click-to-place
+          <PoiMapCanvas
+            onMapClick={handleMapClick}
+            clickToPlaceMode={clickToPlaceMode}
+            focusSiteId={focusSiteId}
+            initialCenter={[16.6, 41.1]}
+            initialZoom={8}
+            coordinates={coordinates}
+          />
+          
+          {clickToPlaceMode && (
+            <div className="absolute top-4 left-4 right-4 bg-yellow-100 border border-yellow-400 rounded-lg p-3 z-10">
+              <p className="text-sm text-yellow-800 text-center font-medium">
+                📍 Clicca sulla mappa per posizionare il POI
               </p>
-              {coordinates && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700">
-                    Coordinate: {coordinates.lat.toFixed(6)}, {coordinates.lon.toFixed(6)}
-                  </p>
-                </div>
-              )}
-              {clickToPlaceMode && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-xs text-yellow-700">Modalità click-to-place attiva</p>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

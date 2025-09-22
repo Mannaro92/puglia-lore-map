@@ -126,9 +126,12 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
       onOpenChange(open)
       if (!open) resetForms()
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="login-description">
         <DialogHeader>
           <DialogTitle className="text-center">MEMOIR GIS</DialogTitle>
+          <p id="login-description" className="sr-only">
+            Accedi o registrati per accedere alla modalità editing
+          </p>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
