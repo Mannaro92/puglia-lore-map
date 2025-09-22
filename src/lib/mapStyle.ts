@@ -19,6 +19,9 @@ export const createMapStyle = (
   layerVisibility: Record<string, boolean> = { sites: true, province: true, comuni: true },
   layerOpacity: LayerOpacity = { sites: 0.6, province: 0.7, comuni: 0.5 }
 ): StyleSpecification => {
+  console.log('🎨 Creating map style with functionsBase:', functionsBase)
+  console.log('🎨 Filters:', filters)
+  console.log('🎨 Layer visibility:', layerVisibility)
   
   // Build query params for filters
   const buildFilterQuery = (layer: string) => {

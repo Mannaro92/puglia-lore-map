@@ -159,8 +159,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
   }
 
   useEffect(() => {
-    if (!mapContainer.current) return
+    console.log('🗺️ MapCanvas useEffect - creating map')
+    if (!mapContainer.current) {
+      console.log('❌ MapCanvas container not found')
+      return
+    }
 
+    console.log('✅ Creating MapLibre map with functionsBase:', functionsBase)
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: createMapStyle(functionsBase, filters, layerVisibility, layerOpacity),
@@ -195,10 +200,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
     mapRef.current = map
 
     map.on('load', () => {
+      console.log('✅ Map loaded successfully')
       onMapLoad?.()
       
       // Set up interaction handlers
       setupInteractionHandlers(map)
+    })
+
+    map.on('error', (e) => {
+      console.error('❌ Map error:', e)
     })
 
     map.on('moveend', () => {

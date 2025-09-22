@@ -9,6 +9,7 @@ import { readUrlState, writeUrlState, parseLayerConfig, serializeLayerConfig, ur
 import { useToast } from '@/hooks/use-toast'
 
 export default function MapPage() {
+  console.log('🗺️ MapPage component mounting')
   const mapRef = useRef<MapCanvasRef>(null)
   const { toast } = useToast()
   
