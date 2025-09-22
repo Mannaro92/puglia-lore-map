@@ -249,8 +249,18 @@ export function PoiForm({
       const cleanUuidArray = (arr: string[]) => {
         return arr.filter(id => id && typeof id === 'string' && id.trim().length > 0)
                   .map(id => {
-                    // Remove any surrounding quotes and escape characters
-                    const cleaned = id.toString().trim().replace(/^["'\\]*|["'\\]*$/g, '')
+                    // Convert to string and clean multiple layers of quotes
+                    let cleaned = String(id).trim()
+                    
+                    // Remove all surrounding quotes and escape characters iteratively
+                    while (cleaned !== cleaned.replace(/^["'\\]+|["'\\]+$/g, '')) {
+                      cleaned = cleaned.replace(/^["'\\]+|["'\\]+$/g, '')
+                    }
+                    
+                    // Additional safety: remove any remaining escaped quotes
+                    cleaned = cleaned.replace(/\\"/g, '"').replace(/\\'/g, "'")
+                    
+                    console.log(`UUID cleaned: "${id}" -> "${cleaned}"`)
                     return cleaned
                   })
       }
