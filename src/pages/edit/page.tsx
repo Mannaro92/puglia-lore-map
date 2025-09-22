@@ -217,17 +217,7 @@ export default function EditPage() {
         {/* Left sidebar - POI List */}
         <div className="w-80 border-r bg-background">
           <div className="p-4 border-b">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">I tuoi POI</h2>
-              <Button
-                onClick={handleCreateNew}
-                size="sm"
-                className="gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Nuovo
-              </Button>
-            </div>
+            <h2 className="text-lg font-semibold">I tuoi POI</h2>
           </div>
           
           <ScrollArea className="h-[calc(100vh-7rem)]">
