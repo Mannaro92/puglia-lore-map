@@ -1,1 +1,7 @@
 project_id = "qdjyzctflpywkblpkniz"
+
+[functions.geocode]
+verify_jwt = false
+
+[functions.tiles]
+verify_jwt = false

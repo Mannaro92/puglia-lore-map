@@ -12,9 +12,10 @@ interface SearchPanelProps {
   onToggle: () => void;
   onResults: (results: any[]) => void;
   mapState: MapState;
+  onMapStateChange: (updates: Partial<MapState>) => void;
 }
 
-export function SearchPanel({ isActive, onToggle, onResults, mapState }: SearchPanelProps) {
+export function SearchPanel({ isActive, onToggle, onResults, mapState, onMapStateChange }: SearchPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [addressResults, setAddressResults] = useState<any[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -53,7 +54,11 @@ export function SearchPanel({ isActive, onToggle, onResults, mapState }: SearchP
     const lon = parseFloat(result.lon);
     
     // Update map center and zoom to location
-    // This would be handled by the parent component
+    onMapStateChange({
+      center: [lon, lat],
+      zoom: 14
+    });
+    
     setAddressResults([]);
     setSearchQuery(result.display_name);
   };

@@ -64,6 +64,7 @@ export function WebGISLayout() {
               onToggle={() => setActivePanel(activePanel === 'search' ? null : 'search')}
               onResults={(results) => updateMapState({ searchResults: results })}
               mapState={mapState}
+              onMapStateChange={updateMapState}
             />
           </div>
 
