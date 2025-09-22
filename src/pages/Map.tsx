@@ -37,7 +37,11 @@ export default function MapPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
-      // Let the LoginModal handle its own closing logic
+      if (event === 'SIGNED_IN') {
+        setLoginModalOpen(false)
+        // Navigate to edit page automatically after login
+        navigate('/edit')
+      }
     })
     
     return () => subscription.unsubscribe()
@@ -130,7 +134,6 @@ export default function MapPage() {
       <LoginModal 
         open={loginModalOpen}
         onOpenChange={setLoginModalOpen}
-        onSuccess={handleEditMode}
       />
     </div>
   )
