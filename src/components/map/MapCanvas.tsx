@@ -339,7 +339,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
 
     // === DEBUG HUD === //
     console.log('🔍 ENV DEBUG:', {
-      FUNCTIONS_BASE: process.env.NEXT_PUBLIC_SUPABASE_FUNCTIONS_URL || 'NOT_SET',
+      FUNCTIONS_BASE: import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || 'NOT_SET',
       supabaseUrl,
       container: !!mapContainer.current,
       containerHeight: mapContainer.current.offsetHeight,
