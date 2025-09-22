@@ -10,6 +10,7 @@ interface PoiMapCanvasProps {
   initialCenter?: [number, number]
   initialZoom?: number
   coordinates?: { lon: number; lat: number } | null
+  onMapReady?: (refreshFn: () => void) => void
 }
 
 export function PoiMapCanvas({ 
@@ -18,7 +19,8 @@ export function PoiMapCanvas({
   focusSiteId = null,
   initialCenter = [16.6, 41.1],
   initialZoom = 8,
-  coordinates
+  coordinates,
+  onMapReady
 }: PoiMapCanvasProps) {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -111,6 +113,9 @@ export function PoiMapCanvas({
       // Load POI data
       loadPOIData()
       
+      // Provide refresh function to parent
+      onMapReady?.(refreshMap)
+      
       // Set cursor for click-to-place mode
       if (clickToPlaceMode) {
         map.getCanvas().style.cursor = 'crosshair'
@@ -199,6 +204,12 @@ export function PoiMapCanvas({
     } catch (error) {
       console.error('❌ Error in loadPOIData:', error)
     }
+  }
+
+  // Expose refresh function to parent
+  const refreshMap = () => {
+    console.log('🔄 Refreshing map data...')
+    loadPOIData()
   }
 
   // Handle cursor change for click-to-place mode

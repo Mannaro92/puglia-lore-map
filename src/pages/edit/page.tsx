@@ -34,6 +34,7 @@ export default function EditPage() {
   const [userSites, setUserSites] = useState<UserSite[]>([])
   const [loadingSites, setLoadingSites] = useState(true)
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(siteId)
+  const [mapRefreshFn, setMapRefreshFn] = useState<(() => void) | null>(null)
 
   // Debug effect to track selectedSiteId changes
   useEffect(() => {
@@ -123,6 +124,10 @@ export default function EditPage() {
     // Refresh the sites list and select the saved site
     loadUserSites()
     setSelectedSiteId(savedSiteId)
+    // Refresh map to show new/updated POI
+    if (mapRefreshFn) {
+      setTimeout(() => mapRefreshFn(), 500)
+    }
     toast({
       title: 'POI salvato',
       description: 'Il POI è stato salvato con successo'
@@ -138,6 +143,10 @@ export default function EditPage() {
     loadUserSites() // Refresh list after deletion
     setSelectedSiteId(null)
     setCoordinates(null)
+    // Refresh map to remove deleted POI
+    if (mapRefreshFn) {
+      setTimeout(() => mapRefreshFn(), 500) // Small delay to ensure DB update
+    }
   }
 
   const handleSelectSite = (site: UserSite) => {
@@ -291,6 +300,7 @@ export default function EditPage() {
             initialCenter={[16.6, 41.1]}
             initialZoom={8}
             coordinates={coordinates}
+            onMapReady={setMapRefreshFn}
           />
           
           {clickToPlaceMode && (
