@@ -160,8 +160,9 @@ export default function EditPage() {
   const handleSelectSite = (site: UserSite) => {
     console.log('🔍 Selecting site:', site.id, site.toponimo)
     setSelectedSiteId(site.id)
-    // Update URL without page reload
-    window.history.replaceState({}, '', `/edit?site=${site.id}`)
+    setCoordinates(null) // Reset coordinates when selecting a different site
+    // Update URL using React Router navigate instead of window.history
+    navigate(`/edit?site=${site.id}`, { replace: true })
   }
 
   const handleCreateNew = () => {
