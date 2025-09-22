@@ -296,30 +296,62 @@ export function PoiForm({
           <CardTitle>Posizione</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {coordinates ? (
-            <div className="flex items-center gap-2 text-sm bg-green-50 p-3 rounded-lg">
-              <MapPin className="w-4 h-4 text-green-600" />
-              <span>Lat: {coordinates.lat.toFixed(6)}, Lon: {coordinates.lon.toFixed(6)}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="latitude">Latitudine</Label>
+              <Input
+                id="latitude"
+                type="number"
+                step="any"
+                value={coordinates?.lat || ''}
+                onChange={(e) => {
+                  const lat = parseFloat(e.target.value)
+                  if (!isNaN(lat) && coordinates) {
+                    onCoordinatesChange?.({ lat, lon: coordinates.lon })
+                  } else if (!isNaN(lat)) {
+                    onCoordinatesChange?.({ lat, lon: 0 })
+                  }
+                }}
+                placeholder="es. 41.123456"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="longitude">Longitudine</Label>
+              <Input
+                id="longitude"
+                type="number"
+                step="any"
+                value={coordinates?.lon || ''}
+                onChange={(e) => {
+                  const lon = parseFloat(e.target.value)
+                  if (!isNaN(lon) && coordinates) {
+                    onCoordinatesChange?.({ lat: coordinates.lat, lon })
+                  } else if (!isNaN(lon)) {
+                    onCoordinatesChange?.({ lat: 0, lon })
+                  }
+                }}
+                placeholder="es. 16.123456"
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Button onClick={onClickToPlace} variant="outline">
+              <MapPin className="w-4 h-4 mr-2" />
+              {isClickingToPlace ? 'Clicca sulla mappa...' : 'Clicca sulla mappa'}
+            </Button>
+            
+            {coordinates && (
               <Button 
                 size="sm" 
                 variant="ghost"
                 onClick={() => onCoordinatesChange?.(null)}
               >
-                Rimuovi
+                Rimuovi coordinate
               </Button>
-            </div>
-          ) : (
-            <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
-              <MapPin className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-gray-600 mb-4">
-                {isClickingToPlace ? 'Clicca sulla mappa per posizionare il POI' : 'Nessuna posizione selezionata'}
-              </p>
-              <Button onClick={onClickToPlace} variant="outline">
-                <MapPin className="w-4 h-4 mr-2" />
-                Clicca sulla mappa
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
