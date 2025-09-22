@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MapLibre GL CSS */
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -102,4 +105,34 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* WebGIS Specific Colors */
+:root {
+  /* Archaeological theme colors */
+  --archaeological-primary: 35 70% 45%; /* Earthy brown */
+  --archaeological-secondary: 25 60% 35%; /* Dark brown */
+  --archaeological-accent: 45 80% 50%; /* Golden yellow */
+  --archaeological-success: 120 50% 40%; /* Forest green */
+  --archaeological-warning: 35 90% 55%; /* Amber */
+  
+  /* Map specific colors */
+  --map-bg: 210 15% 95%;
+  --panel-bg: 0 0% 100%;
+  --panel-border: 220 13% 91%;
+  --layer-hover: 210 40% 96%;
+  
+  /* Gradients */
+  --gradient-archaeological: linear-gradient(135deg, hsl(var(--archaeological-primary)), hsl(var(--archaeological-accent)));
+  --gradient-panel: linear-gradient(180deg, hsl(var(--panel-bg)), hsl(var(--background)));
+  
+  /* Shadows */
+  --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-floating: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  --panel-bg: 222.2 84% 4.9%;
+  --panel-border: 217.2 32.6% 17.5%;
+  --layer-hover: 217.2 32.6% 17.5%;
 }
