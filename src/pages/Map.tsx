@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { MapCanvas, MapCanvasRef } from '@/components/map/MapCanvas'
 import { MapCanvasTest } from '@/components/map/MapCanvasTest'
+import { MapCanvasPure } from '@/components/map/MapCanvasPure'
 import { LayerPanel } from '@/components/map/LayerPanel'
 import { SearchBox } from '@/components/map/SearchBox'
 import { FUNCTIONS_BASE, DEFAULT_BBOX, supabase } from '@/lib/supabaseClient'
@@ -113,6 +114,9 @@ export default function MapPage() {
       }
     }
   }
+
+  // Test mode - uncomment to test pure OSM
+  // return <MapCanvasPure />
 
   return (
     <div className="h-screen w-full flex relative bg-[hsl(var(--map-bg))]">

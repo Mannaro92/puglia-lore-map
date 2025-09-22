@@ -337,6 +337,37 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
       return
     }
 
+    // === DEBUG HUD === //
+    console.log('🔍 ENV DEBUG:', {
+      FUNCTIONS_BASE: process.env.NEXT_PUBLIC_SUPABASE_FUNCTIONS_URL || 'NOT_SET',
+      supabaseUrl,
+      container: !!mapContainer.current,
+      containerHeight: mapContainer.current.offsetHeight,
+      containerWidth: mapContainer.current.offsetWidth
+    });
+
+    const style = createMapStyle(supabaseUrl, supabaseKey, filters, layerVisibility, layerOpacity);
+    
+    // Style validation
+    function assertStyle(s: any) {
+      const ok = s?.version === 8 && 
+                 s?.sources && 
+                 Object.keys(s.sources).length > 0 && 
+                 Array.isArray(s.layers) && 
+                 s.layers.length > 0;
+      if (!ok) throw new Error("Map style invalid/empty: " + JSON.stringify(s));
+      return s;
+    }
+
+    console.log('🔍 STYLE_CHECK:', (() => { 
+      try { 
+        assertStyle(style); 
+        return "✅ VALID"; 
+      } catch (e) { 
+        return "❌ " + (e as Error).message; 
+      } 
+    })());
+
     console.log('✅ Creating MapLibre map with Supabase URL:', supabaseUrl)
     const map = new maplibregl.Map({
       container: mapContainer.current,
@@ -375,6 +406,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
       console.log('✅ Map loaded successfully')
       console.log('📊 Style sources:', Object.keys((map.getStyle() as any).sources || {}))
       console.log('📊 Style layers:', (map.getStyle() as any).layers?.map((l: any) => l.id) || [])
+      console.log('🌍 Map center:', map.getCenter())
+      console.log('🔍 Map zoom:', map.getZoom())
       
       // Ensure proper resize after load
       setTimeout(() => {
