@@ -167,7 +167,7 @@ export default function EditPage() {
 
   const handleCreateNew = () => {
     console.log('➕ Creating new POI')
-    setSelectedSiteId(null)
+    setSelectedSiteId('') // use empty string to render the form for a new POI
     setCoordinates(null)
     // Update URL to remove site parameter using navigate for consistency
     navigate('/edit', { replace: true })
@@ -300,14 +300,10 @@ export default function EditPage() {
               <div className="text-center">
                 <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">Benvenuto nell'Editor POI</h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-muted-foreground">
                   Seleziona un POI esistente dalla lista a sinistra per modificarlo,<br />
-                  oppure clicca "Nuovo" per crearne uno.
+                  oppure clicca "Nuovo" in alto a sinistra per crearne uno.
                 </p>
-                <Button onClick={handleCreateNew} size="lg">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Crea Nuovo POI
-                </Button>
               </div>
             </div>
           )}
