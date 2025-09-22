@@ -122,8 +122,10 @@ export function PoiMapCanvas({
 
     // Real-time coordinate tracking on mouse move
     map.on('mousemove', (e) => {
-      setMouseLat(+e.lngLat.lat.toFixed(6))
-      setMouseLon(+e.lngLat.lng.toFixed(6))
+      const lat = +e.lngLat.lat.toFixed(6)
+      const lng = +e.lngLat.lng.toFixed(6)
+      setMouseLat(lat)
+      setMouseLon(lng)
     })
 
     // Handle clicks on POI features
