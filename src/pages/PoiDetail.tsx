@@ -17,6 +17,21 @@ interface PoiData {
   licenza?: string
   stato_validazione?: string
   geom_point?: any
+  // Location info
+  comune_nome?: string
+  provincia_nome?: string
+  provincia_sigla?: string
+  posizione_label?: string
+  ubicazione_confidenza_label?: string
+  // Metadata arrays
+  cronologie?: string[]
+  definizioni?: string[]
+  ambiti?: string[]
+  indicatori?: string[]
+  strutture?: string[]
+  contesti?: string[]
+  tipi_rinvenimento?: string[]
+  gradi_esplorazione?: string[]
 }
 
 // Helper function to get color for cultural context
@@ -51,21 +66,9 @@ export default function PoiDetailPage() {
       }
 
       try {
-        // Load POI data - use a simpler query for now
+        // Load complete POI data using RPC function
         const { data: poiData, error: poiError } = await supabase
-          .from('sites')
-          .select(`
-            id,
-            toponimo,
-            descrizione,
-            indirizzo_libero,
-            fonte,
-            licenza,
-            stato_validazione,
-            geom_point
-          `)
-          .eq('id', id)
-          .single() as { data: any; error: any }
+          .rpc('rpc_get_poi_detail', { poi_id: id })
 
         if (poiError) {
           console.error('Error loading POI:', poiError)
@@ -79,7 +82,7 @@ export default function PoiDetailPage() {
         }
 
         // Allow access to all POIs for public view
-        setPoi(poiData)
+        setPoi(poiData as any)
 
         // Load media - all media for this site (no validation check for now)
         const { data: mediaRows, error: mediaError } = await supabase
@@ -172,7 +175,9 @@ export default function PoiDetailPage() {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="w-4 h-4" />
                 <span>
-                  {poi.indirizzo_libero || 'Posizione non specificata'}
+                  {[poi.comune_nome, poi.provincia_nome].filter(Boolean).join(', ') || 
+                   poi.indirizzo_libero || 
+                   'Posizione non specificata'}
                 </span>
               </div>
             </div>
@@ -214,10 +219,156 @@ export default function PoiDetailPage() {
 
             <Separator />
 
-            {/* Metadata Grid - Simplified for now */}
+            {/* Metadata Grid */}
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Additional metadata can be added here when available */}
+              {/* Chronologies */}
+              {poi.cronologie && poi.cronologie.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    <h3 className="font-semibold">Cronologia</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.cronologie.map((cronologia: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {cronologia}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Definitions */}
+              {poi.definizioni && poi.definizioni.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    <h3 className="font-semibold">Tipologia</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.definizioni.map((definizione: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {definizione}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cultural Context */}
+              {poi.ambiti && poi.ambiti.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Ambito Cultuale</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.ambiti.map((ambito: string, index: number) => (
+                      <Badge 
+                        key={index}
+                        style={{
+                          backgroundColor: getAmbitoColor(ambito),
+                          color: 'white'
+                        }}
+                      >
+                        {ambito}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cult Indicators */}
+              {poi.indicatori && poi.indicatori.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Indicatori Cultuali</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {poi.indicatori.map((indicatore: string, index: number) => (
+                      <span key={index} className="text-sm bg-muted px-3 py-2 rounded">
+                        {indicatore}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strutture e Componenti */}
+              {poi.strutture && poi.strutture.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Strutture e Componenti</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.strutture.map((struttura: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {struttura}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Contesti Stratigrafici */}
+              {poi.contesti && poi.contesti.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Contesti Stratigrafici</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.contesti.map((contesto: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {contesto}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tipi di Rinvenimento */}
+              {poi.tipi_rinvenimento && poi.tipi_rinvenimento.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Tipi di Rinvenimento</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.tipi_rinvenimento.map((tipo: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {tipo}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Grado di Esplorazione */}
+              {poi.gradi_esplorazione && poi.gradi_esplorazione.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Grado di Esplorazione</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {poi.gradi_esplorazione.map((grado: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {grado}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Additional Location Info */}
+            {(poi.posizione_label || poi.ubicazione_confidenza_label) && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Informazioni Aggiuntive</h3>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {poi.posizione_label && (
+                      <div>
+                        <span className="text-sm font-medium">Posizione: </span>
+                        <span className="text-sm text-muted-foreground">{poi.posizione_label}</span>
+                      </div>
+                    )}
+                    {poi.ubicazione_confidenza_label && (
+                      <div>
+                        <span className="text-sm font-medium">Affidabilità ubicazione: </span>
+                        <span className="text-sm text-muted-foreground">{poi.ubicazione_confidenza_label}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 
