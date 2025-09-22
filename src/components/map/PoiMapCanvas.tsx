@@ -136,19 +136,22 @@ export function PoiMapCanvas({
       }
     })
 
-    // Handle general map clicks for placement mode
+    // Handle general map clicks for placement 
     map.on('click', (e) => {
-      if (clickToPlaceMode && onMapClick) {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['sites-circles'] })
-        if (features.length === 0) {
-          const lat = +e.lngLat.lat.toFixed(8)
-          const lng = +e.lngLat.lng.toFixed(8)
-          
-          // Create or update marker immediately
-          ensureMarker(lng, lat)
-          
-          onMapClick({ lng, lat })
-        }
+      // Check if we clicked on an existing POI
+      const features = map.queryRenderedFeatures(e.point, { layers: ['sites-circles'] })
+      
+      // If no POI was clicked and we have an onMapClick handler, place a marker
+      if (features.length === 0 && onMapClick) {
+        const lat = +e.lngLat.lat.toFixed(8)
+        const lng = +e.lngLat.lng.toFixed(8)
+        
+        console.log('🎯 Map clicked at:', { lat, lng })
+        
+        // Create or update marker immediately
+        ensureMarker(lng, lat)
+        
+        onMapClick({ lng, lat })
       }
     })
 
