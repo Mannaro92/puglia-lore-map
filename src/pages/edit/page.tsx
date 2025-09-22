@@ -125,6 +125,10 @@ export default function EditPage() {
     loadUserSites()
     setSelectedSiteId(null) // Close the editor
     setCoordinates(null) // Reset coordinates
+    
+    // Update URL to remove site parameter
+    navigate('/edit', { replace: true })
+    
     // Refresh map to show new/updated POI
     if (mapRefreshFn) {
       setTimeout(() => mapRefreshFn(), 500)
@@ -138,6 +142,9 @@ export default function EditPage() {
   const handleCancel = () => {
     setSelectedSiteId(null)
     setCoordinates(null)
+    
+    // Update URL to remove site parameter
+    navigate('/edit', { replace: true })
   }
 
   const handleDelete = () => {
