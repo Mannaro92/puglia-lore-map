@@ -40,26 +40,12 @@ export const searchSites = async (params: SearchParams): Promise<SearchResponse>
   
   try {
     // Build PostgREST query 
-    let query = 'sites_public?select=id,toponimo,descrizione,comune,provincia,definizioni,cronologie,indicatori,ambiti,centroid,bbox'
+    let query = 'sites?select=id,toponimo,descrizione,centroid,bbox'
     const conditions: string[] = []
     
-    // Text search on toponimo and descrizione
+    // Text search on toponimo e descrizione
     if (params.q) {
       conditions.push(`or=(toponimo.ilike.*${params.q}*,descrizione.ilike.*${params.q}*)`)
-    }
-    
-    // Filter conditions
-    if (params.definizioni?.length) {
-      conditions.push(`definizioni.cs.{${params.definizioni.join(',')}}`)
-    }
-    if (params.cronologie?.length) {
-      conditions.push(`cronologie.cs.{${params.cronologie.join(',')}}`)
-    }
-    if (params.indicatori?.length) {
-      conditions.push(`indicatori.cs.{${params.indicatori.join(',')}}`)
-    }
-    if (params.ambiti?.length) {
-      conditions.push(`ambiti.cs.{${params.ambiti.join(',')}}`)
     }
     
     // Add bbox filter if provided
@@ -96,14 +82,8 @@ export const searchSites = async (params: SearchParams): Promise<SearchResponse>
         id: site.id,
         toponimo: site.toponimo,
         descrizione: site.descrizione,
-        comune: site.comune,
-        provincia: site.provincia,
-        definizioni: site.definizioni,
-        cronologie: site.cronologie,
-        indicatori: site.indicatori,
-        ambiti: site.ambiti,
-        centroid: site.centroid ? [site.centroid.coordinates[0], site.centroid.coordinates[1]] : undefined,
-        bbox: site.bbox ? [
+        centroid: site.centroid && site.centroid.coordinates ? [site.centroid.coordinates[0], site.centroid.coordinates[1]] : undefined,
+        bbox: site.bbox && site.bbox.coordinates ? [
           site.bbox.coordinates[0][0][0], site.bbox.coordinates[0][0][1],
           site.bbox.coordinates[0][2][0], site.bbox.coordinates[0][2][1]
         ] : undefined

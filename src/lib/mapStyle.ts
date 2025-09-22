@@ -29,18 +29,7 @@ export const createMapStyle = (
     let query = 'sites_public?select=*'
     const conditions: string[] = []
     
-    if (filters.definizioni?.length) {
-      conditions.push(`definizioni.cs.{${filters.definizioni.join(',')}}`)
-    }
-    if (filters.cronologie?.length) {
-      conditions.push(`cronologie.cs.{${filters.cronologie.join(',')}}`)
-    }
-    if (filters.indicatori?.length) {
-      conditions.push(`indicatori.cs.{${filters.indicatori.join(',')}}`)
-    }
-    if (filters.ambiti?.length) {
-      conditions.push(`ambiti.cs.{${filters.ambiti.join(',')}}`)
-    }
+    // NOTE: filtri avanzati richiedono una vista o RPC; per ora non li applichiamo su PostgREST diretto
     
     if (conditions.length > 0) {
       query += '&' + conditions.join('&')

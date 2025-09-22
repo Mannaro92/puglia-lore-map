@@ -44,7 +44,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
   const hoveredFeatureId = useRef<string | null>(null)
 
   // Load sites data function
-  const loadSitesData = useCallback(async (query: string = 'sites_public?select=*&limit=100') => {
+  const loadSitesData = useCallback(async (query: string = 'sites?select=*&limit=100') => {
     if (!mapRef.current) return
     
     try {
@@ -156,7 +156,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
     
     setFilters: (newFilters: MapFilters) => {
       // Build new query for sites with filters
-      let sitesQuery = 'sites_public?select=*'
+      let sitesQuery = 'sites?select=*'
       const conditions: string[] = []
       
       if (newFilters.definizioni?.length) {
