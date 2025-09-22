@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { X, ExternalLink, MapPin, Clock, Tag, Book, Image as ImageIcon } from "lucide-react";
+import { X, ExternalLink, MapPin, Clock, Tag, Book, Image as ImageIcon, ZoomIn } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { getSiteMedia, type MediaItem } from "@/lib/media";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,22 +17,42 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
   const properties = feature.properties || {};
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Debug feature object
+  console.log('🔍 FeatureInfoPanel feature:', feature);
+  console.log('🔍 Feature properties:', properties);
+  console.log('🔍 Feature ID for media lookup:', feature.id || properties.id);
 
   // Load media for this site
   useEffect(() => {
-    if (feature.id) {
-      console.log('Loading media for site:', feature.id);
+    const siteId = feature.id || properties.id;
+    if (siteId) {
+      console.log('🔍 Loading media for site:', siteId);
       setLoadingMedia(true);
-      getSiteMedia(feature.id).then((mediaList) => {
-        console.log('Media loaded:', mediaList);
+      getSiteMedia(siteId).then((mediaList) => {
+        console.log('📸 Media loaded:', mediaList);
         setMedia(mediaList);
+        if (mediaList.length > 0) {
+          console.log('✅ Found', mediaList.length, 'images for POI');
+        } else {
+          console.log('❌ No images found for this POI');
+        }
       }).catch((error) => {
-        console.error('Error loading media:', error);
+        console.error('💥 Error loading media:', error);
       }).finally(() => {
         setLoadingMedia(false);
       });
+    } else {
+      console.log('⚠️ No site ID available for media lookup');
     }
-  }, [feature.id]);
+  }, [feature.id, properties.id]);
+
+  // Function to get image URL
+  const getImageUrl = (storagePath: string) => {
+    const { data } = supabase.storage.from('poi-media').getPublicUrl(storagePath);
+    return data.publicUrl;
+  };
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
@@ -72,40 +93,122 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       )}
 
       {/* Media Gallery */}
-      {(media.length > 0 || loadingMedia) && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" />
-            <h4 className="text-sm font-medium">Immagini</h4>
+      <div className="poi-images space-y-3">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" />
+          <h4 className="text-sm font-medium">Immagini</h4>
+          {media.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {media.length}
+            </Badge>
+          )}
+        </div>
+        
+        {loadingMedia ? (
+          <div className="flex items-center justify-center p-6 bg-muted/30 rounded-lg">
+            <div className="text-sm text-muted-foreground">Caricamento immagini...</div>
           </div>
-          
-          {loadingMedia ? (
-            <div className="flex items-center justify-center p-4">
-              <div className="text-xs text-muted-foreground">Caricamento immagini...</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {media.map((item) => {
-                const { data } = supabase.storage.from('poi-media').getPublicUrl(item.storage_path);
-                return (
-                  <div key={item.id} className="relative group">
+        ) : media.length > 0 ? (
+          <div className="space-y-3">
+            {/* Main Image */}
+            <div className="relative">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="relative group cursor-pointer">
                     <img
-                      src={data.publicUrl}
-                      alt={item.titolo || 'Immagine del sito'}
-                      className="w-full h-20 object-cover rounded border"
+                      src={getImageUrl(media[0].storage_path)}
+                      alt={media[0].titolo || 'Immagine principale del sito'}
+                      className="w-full max-h-64 object-cover rounded-lg border"
+                      style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', marginBottom: '8px' }}
                     />
-                    {item.titolo && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 rounded-b">
-                        <div className="truncate">{item.titolo}</div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                      <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    {media[0].titolo && (
+                      <div className="absolute bottom-2 left-2 right-2 bg-black/80 text-white text-sm p-2 rounded">
+                        <div className="font-medium">{media[0].titolo}</div>
+                        {media[0].didascalia && (
+                          <div className="text-xs text-gray-300 mt-1">{media[0].didascalia}</div>
+                        )}
                       </div>
                     )}
                   </div>
-                );
-              })}
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <img
+                    src={getImageUrl(media[0].storage_path)}
+                    alt={media[0].titolo || 'Immagine del sito'}
+                    className="w-full h-auto rounded-lg"
+                  />
+                  {(media[0].titolo || media[0].didascalia) && (
+                    <div className="mt-4 space-y-2">
+                      {media[0].titolo && (
+                        <h3 className="font-semibold text-lg">{media[0].titolo}</h3>
+                      )}
+                      {media[0].didascalia && (
+                        <p className="text-muted-foreground">{media[0].didascalia}</p>
+                      )}
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Additional Images Thumbnails */}
+            {media.length > 1 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">Altre immagini</div>
+                <div className="flex gap-2 overflow-x-auto">
+                  {media.slice(1).map((item, index) => (
+                    <Dialog key={item.id}>
+                      <DialogTrigger asChild>
+                        <div className="flex-shrink-0 relative group cursor-pointer">
+                          <img
+                            src={getImageUrl(item.storage_path)}
+                            alt={item.titolo || `Immagine ${index + 2}`}
+                            className="w-20 h-20 object-cover rounded border"
+                            style={{ maxHeight: '80px' }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center">
+                            <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          {item.titolo && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white text-xs p-1 rounded-b">
+                              <div className="truncate">{item.titolo}</div>
+                            </div>
+                          )}
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <img
+                          src={getImageUrl(item.storage_path)}
+                          alt={item.titolo || 'Immagine del sito'}
+                          className="w-full h-auto rounded-lg"
+                        />
+                        {(item.titolo || item.didascalia) && (
+                          <div className="mt-4 space-y-2">
+                            {item.titolo && (
+                              <h3 className="font-semibold text-lg">{item.titolo}</h3>
+                            )}
+                            {item.didascalia && (
+                              <p className="text-muted-foreground">{item.didascalia}</p>
+                            )}
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg text-center">
+            <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
+            <div className="text-sm text-muted-foreground">Nessuna immagine disponibile</div>
+          </div>
+        )}
+      </div>
 
       {/* Chronologies */}
       {properties.cronologie && properties.cronologie.length > 0 && (
