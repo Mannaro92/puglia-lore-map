@@ -1519,6 +1519,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      mvt_comuni_tile: {
+        Args: { x: number; y: number; z: number }
+        Returns: string
+      }
+      mvt_province_tile: {
+        Args: { x: number; y: number; z: number }
+        Returns: string
+      }
+      mvt_sites_tile: {
+        Args: {
+          ambito_filters?: string[]
+          cronologia_filters?: string[]
+          definizione_filters?: string[]
+          x: number
+          y: number
+          z: number
+        }
+        Returns: string
+      }
       path: {
         Args: { "": unknown }
         Returns: unknown
