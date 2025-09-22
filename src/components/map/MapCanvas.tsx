@@ -89,12 +89,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           }
         })
         
-        const sitesSource = mapRef.current!.getSource('sites') as maplibregl.GeoJSONSource
-        if (sitesSource) {
-          sitesSource.setData({
+        const src = mapRef.current!.getSource('sites') as any
+        if (src && typeof src.setData === 'function') {
+          (src as maplibregl.GeoJSONSource).setData({
             type: 'FeatureCollection',
             features: geojsonFeatures
           })
+        } else {
+          console.log('ℹ️ Skipping GeoJSON setData for vector-tile source "sites"')
         }
       } else {
         console.error('❌ Failed to load sites:', response.status)
@@ -139,12 +141,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           }
         })
         
-        const provinceSource = mapRef.current!.getSource('province') as maplibregl.GeoJSONSource
-        if (provinceSource) {
-          provinceSource.setData({
+        const src = mapRef.current!.getSource('province') as any
+        if (src && typeof src.setData === 'function') {
+          (src as maplibregl.GeoJSONSource).setData({
             type: 'FeatureCollection',
             features: geojsonFeatures
           })
+        } else {
+          console.log('ℹ️ Skipping GeoJSON setData for vector-tile source "province"')
         }
       }
       
@@ -178,12 +182,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           }
         })
         
-        const comuniSource = mapRef.current!.getSource('comuni') as maplibregl.GeoJSONSource
-        if (comuniSource) {
-          comuniSource.setData({
+        const src = mapRef.current!.getSource('comuni') as any
+        if (src && typeof src.setData === 'function') {
+          (src as maplibregl.GeoJSONSource).setData({
             type: 'FeatureCollection',
             features: geojsonFeatures
           })
+        } else {
+          console.log('ℹ️ Skipping GeoJSON setData for vector-tile source "comuni"')
         }
       }
       

@@ -24,15 +24,15 @@ export const createMapStyle = (
   console.log('🎨 Creating map style with Supabase URL:', supabaseUrl)
   console.log('🎨 Filters:', filters)
   console.log('🎨 Layer visibility:', layerVisibility)
-  console.log('🎨 FUNCTIONS_BASE:', process.env.NEXT_PUBLIC_FUNCTIONS_BASE)
 
-  // Fallback se non abbiamo functions base
-  if (!process.env.NEXT_PUBLIC_FUNCTIONS_BASE) {
-    console.warn('⚠️ No FUNCTIONS_BASE found, using safe OSM style')
+  // Derive Supabase Functions base from Supabase URL
+  const match = supabaseUrl?.match(/^https:\/\/([^.]+)\.supabase\.co/)
+  const projectId = match?.[1]
+  if (!projectId) {
+    console.warn('⚠️ Unable to derive functions base from supabaseUrl, using safe OSM style')
     return assertStyle(safeStyle) as StyleSpecification
   }
-
-  const functionsBase = process.env.NEXT_PUBLIC_FUNCTIONS_BASE
+  const functionsBase = `https://${projectId}.functions.supabase.co`
   
   // Helper per costruire URL tiles
   const buildTilesUrl = (layer: string) => {
