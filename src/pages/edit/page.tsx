@@ -91,8 +91,8 @@ export default function EditPage() {
       
       const { data, error } = await supabase
         .from('sites')
-        .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at')
-        .eq('created_by', user.id)
+        .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at, created_by')
+        .or(`created_by.eq.${user.id},created_by.eq.00000000-0000-0000-0000-000000000000,created_by.is.null`)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
