@@ -4,12 +4,12 @@ export interface MediaItem {
   id: string
   site_id: string | null
   storage_path: string
-  title?: string
-  caption?: string
+  tipo: 'image' | 'video' | 'pdf' | 'model3d'
+  titolo?: string
+  didascalia?: string
   crediti?: string
   licenza: string
-  order_index: number
-  created_by: string
+  ordine: number
   created_at: string
 }
 
@@ -50,26 +50,38 @@ export async function uploadPoiImage(
   return { path, publicUrl: data.publicUrl }
 }
 
-// Insert media record
-export async function insertMedia(data: Partial<MediaItem>): Promise<MediaItem> {
+// Insert media record (matching existing schema)
+export async function insertMedia(data: Omit<MediaItem, 'id' | 'created_at'>): Promise<MediaItem> {
   const { data: media, error } = await supabase
     .from('media')
     .insert({
-      ...data,
-      created_by: (await supabase.auth.getUser()).data.user?.id
+      site_id: data.site_id,
+      storage_path: data.storage_path,
+      tipo: data.tipo,
+      titolo: data.titolo,
+      didascalia: data.didascalia,
+      crediti: data.crediti,
+      licenza: data.licenza,
+      ordine: data.ordine,
     })
-    .select()
+    .select('*')
     .single()
 
   if (error) throw error
-  return media
+  return media as unknown as MediaItem
 }
 
 // Update media metadata
 export async function updateMedia(id: string, updates: Partial<MediaItem>): Promise<void> {
   const { error } = await supabase
     .from('media')
-    .update(updates)
+    .update({
+      titolo: updates.titolo,
+      didascalia: updates.didascalia,
+      crediti: updates.crediti,
+      licenza: updates.licenza,
+      ordine: updates.ordine,
+    })
     .eq('id', id)
 
   if (error) throw error
@@ -82,9 +94,10 @@ export async function deleteMedia(id: string): Promise<void> {
     .from('media')
     .select('storage_path')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (fetchError) throw fetchError
+  if (!media) return
 
   // Delete from storage
   const { error: storageError } = await supabase.storage
@@ -102,11 +115,11 @@ export async function deleteMedia(id: string): Promise<void> {
   if (dbError) throw dbError
 }
 
-// Set cover image for site
+// Set cover image for site (cast to any to satisfy types until column is generated)
 export async function setCover(siteId: string, mediaId: string): Promise<void> {
   const { error } = await supabase
-    .from('sites')
-    .update({ cover_media_id: mediaId })
+    .from('sites' as any)
+    .update({ cover_media_id: mediaId } as any)
     .eq('id', siteId)
 
   if (error) throw error
@@ -114,10 +127,10 @@ export async function setCover(siteId: string, mediaId: string): Promise<void> {
 
 // Reorder media for a site
 export async function reorderMedia(siteId: string, orderedIds: string[]): Promise<void> {
-  const updates = orderedIds.map((id, index) => 
+  const updates = orderedIds.map((id, index) =>
     supabase
       .from('media')
-      .update({ order_index: index })
+      .update({ ordine: index })
       .eq('id', id)
       .eq('site_id', siteId)
   )
@@ -131,10 +144,10 @@ export async function getSiteMedia(siteId: string): Promise<MediaItem[]> {
     .from('media')
     .select('*')
     .eq('site_id', siteId)
-    .order('order_index', { ascending: true })
+    .order('ordine', { ascending: true })
 
   if (error) throw error
-  return data || []
+  return (data || []) as unknown as MediaItem[]
 }
 
 // Compress image if needed

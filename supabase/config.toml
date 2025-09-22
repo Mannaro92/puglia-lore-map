@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.tiles]
 verify_jwt = false
+
+[functions.move-temp-to-site]
+verify_jwt = true

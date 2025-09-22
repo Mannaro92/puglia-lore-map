@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { Loader2, Save, Trash2, MapPin, X } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { MediaUploader } from '@/components/media/MediaUploader'
+import { getSessionId } from '@/lib/media'
 
 interface PoiFormProps {
   siteId?: string
