@@ -373,6 +373,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
 
     map.on('load', () => {
       console.log('✅ Map loaded successfully')
+      console.log('📊 Style sources:', Object.keys((map.getStyle() as any).sources || {}))
+      console.log('📊 Style layers:', (map.getStyle() as any).layers?.map((l: any) => l.id) || [])
+      
+      // Ensure proper resize after load
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.resize()
+          console.log('🔄 Map resized after load')
+        }
+      }, 100)
+      
       onMapLoad?.()
       
       // Set up interaction handlers
@@ -394,10 +405,24 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
     })
 
     return () => {
-      map.remove()
-      mapRef.current = null
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
     }
   }, [supabaseUrl, supabaseKey, loadSitesData, loadGeoData])
+
+  // Assicura resize quando la finestra cambia
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize()
+      }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const setupInteractionHandlers = (map: maplibregl.Map) => {
     const interactiveLayers = ['sites-fill', 'sites-points']

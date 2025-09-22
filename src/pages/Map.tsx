@@ -20,11 +20,25 @@ export default function MapPage() {
   const { visibility: initialVisibility, opacity: initialOpacity } = 
     parseLayerConfig(urlState.layers || '')
   
+  // Assicura che i layer siano ON di default per demo
+  const defaultVisibility = { 
+    sites: true, 
+    province: true, 
+    comuni: true,
+    ...initialVisibility
+  }
+  const defaultOpacity = { 
+    sites: 0.6, 
+    province: 0.7, 
+    comuni: 0.5,
+    ...initialOpacity
+  }
+  
   const [activeTab, setActiveTab] = useState<'layers' | 'info'>('layers')
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
   const [filters, setFilters] = useState<MapFilters>(urlStateToFilters(urlState))
-  const [layerVisibility, setLayerVisibility] = useState(initialVisibility)
-  const [layerOpacity, setLayerOpacity] = useState<LayerOpacity>(initialOpacity)
+  const [layerVisibility, setLayerVisibility] = useState(defaultVisibility)
+  const [layerOpacity, setLayerOpacity] = useState<LayerOpacity>(defaultOpacity)
   const [vocabularies, setVocabularies] = useState<any>(null)
 
   // Load vocabularies

@@ -9,6 +9,13 @@
 All colors MUST be HSL.
 */
 
+/* Assicura altezza corretta per la mappa */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

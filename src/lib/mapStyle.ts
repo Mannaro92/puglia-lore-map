@@ -1,4 +1,5 @@
 import { StyleSpecification } from 'maplibre-gl'
+import { safeStyle, assertStyle } from './safeStyle'
 
 export interface MapFilters {
   definizioni?: string[]
@@ -23,28 +24,46 @@ export const createMapStyle = (
   console.log('🎨 Creating map style with Supabase URL:', supabaseUrl)
   console.log('🎨 Filters:', filters)
   console.log('🎨 Layer visibility:', layerVisibility)
+  console.log('🎨 FUNCTIONS_BASE:', process.env.NEXT_PUBLIC_FUNCTIONS_BASE)
 
-  // Build PostgREST query for sites
-  const buildSitesQuery = () => {
-    let query = 'sites_public?select=*'
-    const conditions: string[] = []
-    
-    // NOTE: filtri avanzati richiedono una vista o RPC; per ora non li applichiamo su PostgREST diretto
-    
-    if (conditions.length > 0) {
-      query += '&' + conditions.join('&')
-    }
-    
-    return query
+  // Fallback se non abbiamo functions base
+  if (!process.env.NEXT_PUBLIC_FUNCTIONS_BASE) {
+    console.warn('⚠️ No FUNCTIONS_BASE found, using safe OSM style')
+    return assertStyle(safeStyle) as StyleSpecification
   }
 
-  return {
+  const functionsBase = process.env.NEXT_PUBLIC_FUNCTIONS_BASE
+  
+  // Helper per costruire URL tiles
+  const buildTilesUrl = (layer: string) => {
+    const baseUrl = `${functionsBase}/tiles/{z}/{x}/{y}.mvt?layer=${layer}`
+    const queryParams: string[] = []
+    
+    if (filters.definizioni?.length) {
+      queryParams.push(`definizioni=${filters.definizioni.join(',')}`)
+    }
+    if (filters.cronologie?.length) {
+      queryParams.push(`cronologie=${filters.cronologie.join(',')}`)
+    }
+    if (filters.indicatori?.length) {
+      queryParams.push(`indicatori=${filters.indicatori.join(',')}`)
+    }
+    if (filters.ambiti?.length) {
+      queryParams.push(`ambiti=${filters.ambiti.join(',')}`)
+    }
+    
+    return queryParams.length > 0 ? `${baseUrl}&${queryParams.join('&')}` : baseUrl
+  }
+
+  const style = {
     version: 8,
     name: 'MEMOIR GIS',
+    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
     metadata: {
       'maplibre:type': 'memoir-archaeological'
     },
     sources: {
+      // OSM sempre presente come base
       'osm': {
         type: 'raster',
         tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
@@ -52,29 +71,26 @@ export const createMapStyle = (
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
       },
       'sites': {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: []
-        }
+        type: 'vector',
+        tiles: [buildTilesUrl('sites')],
+        minzoom: 0,
+        maxzoom: 22
       },
       'province': {
-        type: 'geojson', 
-        data: {
-          type: 'FeatureCollection',
-          features: []
-        }
+        type: 'vector',  
+        tiles: [buildTilesUrl('province')],
+        minzoom: 0,
+        maxzoom: 22
       },
       'comuni': {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: []
-        }
+        type: 'vector',
+        tiles: [buildTilesUrl('comuni')],
+        minzoom: 0,
+        maxzoom: 22
       }
     },
     layers: [
-      // Base layer
+      // Base OSM layer - sempre visibile
       {
         id: 'osm',
         type: 'raster',
@@ -89,6 +105,7 @@ export const createMapStyle = (
         id: 'province-fill',
         type: 'fill',
         source: 'province',
+        'source-layer': 'province',
         layout: {
           visibility: layerVisibility.province ? 'visible' : 'none'
         },
@@ -101,6 +118,7 @@ export const createMapStyle = (
         id: 'province-line',
         type: 'line',
         source: 'province',
+        'source-layer': 'province',
         layout: {
           visibility: layerVisibility.province ? 'visible' : 'none'
         },
@@ -116,6 +134,7 @@ export const createMapStyle = (
         id: 'comuni-line',
         type: 'line',
         source: 'comuni',
+        'source-layer': 'comuni',
         layout: {
           visibility: layerVisibility.comuni ? 'visible' : 'none'
         },
@@ -131,6 +150,7 @@ export const createMapStyle = (
         id: 'sites-fill',
         type: 'fill',
         source: 'sites',
+        'source-layer': 'sites',
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -156,6 +176,7 @@ export const createMapStyle = (
         id: 'sites-outline',
         type: 'line',
         source: 'sites',
+        'source-layer': 'sites',
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -172,6 +193,7 @@ export const createMapStyle = (
         id: 'sites-points',
         type: 'circle',
         source: 'sites',
+        'source-layer': 'sites',
         filter: ['==', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -211,6 +233,7 @@ export const createMapStyle = (
         id: 'sites-highlight',
         type: 'line',
         source: 'sites',
+        'source-layer': 'sites',
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
         },
@@ -229,4 +252,6 @@ export const createMapStyle = (
       }
     ]
   }
+
+  return assertStyle(style) as StyleSpecification
 }
