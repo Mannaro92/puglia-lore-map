@@ -138,17 +138,46 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
           ...result,
           type: 'site' as const
         }))
-        setResults(siteResults)
-        setShowResults(true)
-        setSelectedIndex(-1)
+        if (siteResults.length > 0) {
+          setResults(siteResults)
+          setShowResults(true)
+          setSelectedIndex(-1)
+        } else {
+          // Fallback to geocoding when no site results
+          const geocodeResponse = await geocodeAddress(searchQuery)
+          if (geocodeResponse.success && geocodeResponse.results.length > 0) {
+            const geocodeResults = geocodeResponse.results.map(result => ({
+              ...result,
+              type: 'address' as const
+            }))
+            setResults(geocodeResults)
+            setShowResults(true)
+            setSelectedIndex(-1)
+          } else {
+            setResults([])
+            setShowResults(false)
+          }
+        }
       } else {
-        toast({
-          title: 'Errore nella ricerca',
-          description: searchResponse.error || 'Si è verificato un errore durante la ricerca',
-          variant: 'destructive'
-        })
-        setResults([])
-        setShowResults(false)
+        // On error, also try geocoding as graceful fallback
+        const geocodeResponse = await geocodeAddress(searchQuery)
+        if (geocodeResponse.success && geocodeResponse.results.length > 0) {
+          const geocodeResults = geocodeResponse.results.map(result => ({
+            ...result,
+            type: 'address' as const
+          }))
+          setResults(geocodeResults)
+          setShowResults(true)
+          setSelectedIndex(-1)
+        } else {
+          toast({
+            title: 'Errore nella ricerca',
+            description: searchResponse.error || 'Si è verificato un errore durante la ricerca',
+            variant: 'destructive'
+          })
+          setResults([])
+          setShowResults(false)
+        }
       }
     } catch (error) {
       console.error('Search error:', error)

@@ -113,7 +113,8 @@ export const geocodeAddress = async (query: string): Promise<GeocodeResponse> =>
   
   try {
     // Try internal geocode function first
-    const response = await fetch(getFunctionUrl('/geocode'), {
+    const url = `${getFunctionUrl('/geocode')}?` + new URLSearchParams({ q: query })
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
