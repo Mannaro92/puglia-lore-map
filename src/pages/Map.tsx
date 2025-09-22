@@ -37,9 +37,7 @@ export default function MapPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
-      if (event === 'SIGNED_IN') {
-        setLoginModalOpen(false)
-      }
+      // Let the LoginModal handle its own closing logic
     })
     
     return () => subscription.unsubscribe()
