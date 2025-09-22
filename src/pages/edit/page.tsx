@@ -284,9 +284,19 @@ export default function EditPage() {
 
         {/* Center panel - Form */}
         <div className="flex-1 border-r bg-background">
-          {selectedSiteId !== null ? (
+          {selectedSiteId !== null && selectedSiteId !== '' ? (
             <PoiForm
               siteId={selectedSiteId || undefined}
+              coordinates={coordinates}
+              onCoordinatesChange={setCoordinates}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              onDelete={handleDelete}
+              onClickToPlace={handleClickToPlace}
+              isClickingToPlace={clickToPlaceMode}
+            />
+          ) : selectedSiteId === '' ? (
+            <PoiForm
               coordinates={coordinates}
               onCoordinatesChange={setCoordinates}
               onSave={handleSave}
