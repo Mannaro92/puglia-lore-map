@@ -60,15 +60,31 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
         const sitesData = await response.json()
         console.log('✅ Loaded sites data:', sitesData.length, 'sites')
         
-        const geojsonFeatures = sitesData.map((site: any) => ({
-          type: 'Feature',
-          id: site.id,
-          properties: site,
-          geometry: site.geom_point || site.geom_area || {
-            type: 'Point',
-            coordinates: [16.8, 41.1]
+        const geojsonFeatures = sitesData.map((site: any) => {
+          let geometry: any = site.geom_point ?? site.geom_area
+          try {
+            if (typeof geometry === 'string') {
+              geometry = JSON.parse(geometry)
+            }
+          } catch (e) {
+            console.warn('⚠️ Invalid site geometry JSON, falling back to point', site.id, e)
+            geometry = null
           }
-        }))
+
+          if (!geometry || !geometry.type) {
+            geometry = {
+              type: 'Point',
+              coordinates: [16.8, 41.1]
+            }
+          }
+
+          return {
+            type: 'Feature',
+            id: site.id,
+            properties: site,
+            geometry
+          }
+        })
         
         const sitesSource = mapRef.current!.getSource('sites') as maplibregl.GeoJSONSource
         if (sitesSource) {
@@ -102,12 +118,23 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
         const provinceData = await provinceResponse.json()
         console.log('✅ Loaded province data:', provinceData.length, 'provinces')
         
-        const geojsonFeatures = provinceData.map((province: any) => ({
-          type: 'Feature',
-          id: province.id,
-          properties: province,
-          geometry: province.geom
-        }))
+        const geojsonFeatures = provinceData.map((province: any) => {
+          let geometry: any = province.geom
+          try {
+            if (typeof geometry === 'string') {
+              geometry = JSON.parse(geometry)
+            }
+          } catch (e) {
+            console.warn('⚠️ Invalid province geometry JSON', province.id, e)
+            geometry = null
+          }
+          return {
+            type: 'Feature',
+            id: province.id,
+            properties: province,
+            geometry
+          }
+        })
         
         const provinceSource = mapRef.current!.getSource('province') as maplibregl.GeoJSONSource
         if (provinceSource) {
@@ -130,12 +157,23 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
         const comuniData = await comuniResponse.json()
         console.log('✅ Loaded comuni data:', comuniData.length, 'comuni')
         
-        const geojsonFeatures = comuniData.map((comune: any) => ({
-          type: 'Feature',
-          id: comune.id,
-          properties: comune,
-          geometry: comune.geom
-        }))
+        const geojsonFeatures = comuniData.map((comune: any) => {
+          let geometry: any = comune.geom
+          try {
+            if (typeof geometry === 'string') {
+              geometry = JSON.parse(geometry)
+            }
+          } catch (e) {
+            console.warn('⚠️ Invalid comune geometry JSON', comune.id, e)
+            geometry = null
+          }
+          return {
+            type: 'Feature',
+            id: comune.id,
+            properties: comune,
+            geometry
+          }
+        })
         
         const comuniSource = mapRef.current!.getSource('comuni') as maplibregl.GeoJSONSource
         if (comuniSource) {
