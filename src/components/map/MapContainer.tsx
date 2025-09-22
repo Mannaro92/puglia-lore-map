@@ -178,39 +178,52 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
         }
       });
 
-      // Set initial layer visibility based on mapState
-      const allLayerIds = ['sites', 'province', 'comuni'];
-      allLayerIds.forEach(layerId => {
-        const layers = getLayersForId(layerId);
-        const isVisible = mapState.visibleLayers.has(layerId);
-        
-        layers.forEach(layer => {
-          if (map.current?.getLayer(layer)) {
-            map.current.setLayoutProperty(layer, 'visibility', isVisible ? 'visible' : 'none');
-            console.log(`Initial layer ${layer} visibility set to ${isVisible ? 'visible' : 'none'}`);
-          }
-        });
-      });
-
-      // Set initial layer opacity
-      mapState.layerOpacity.forEach((opacity, layerId) => {
-        const layers = getLayersForId(layerId);
-        layers.forEach(layer => {
-          if (map.current?.getLayer(layer)) {
-            const layerType = map.current.getLayer(layer)?.type;
-            
-            if (layerType === 'circle') {
-              map.current.setPaintProperty(layer, 'circle-opacity', opacity);
-              map.current.setPaintProperty(layer, 'circle-stroke-opacity', opacity);
-            } else if (layerType === 'line') {
-              map.current.setPaintProperty(layer, 'line-opacity', opacity);
-            } else if (layerType === 'symbol') {
-              map.current.setPaintProperty(layer, 'text-opacity', opacity);
-              map.current.setPaintProperty(layer, 'text-halo-opacity', opacity);
+      // Wait a moment for all layers to be added, then set initial visibility and opacity
+      setTimeout(() => {
+        const allLayerIds = ['sites', 'province', 'comuni'];
+        allLayerIds.forEach(layerId => {
+          const layers = getLayersForId(layerId);
+          const isVisible = mapState.visibleLayers.has(layerId);
+          
+          layers.forEach(layer => {
+            try {
+              if (map.current?.getLayer(layer)) {
+                map.current.setLayoutProperty(layer, 'visibility', isVisible ? 'visible' : 'none');
+                console.log(`Initial layer ${layer} visibility set to ${isVisible ? 'visible' : 'none'}`);
+              }
+            } catch (error) {
+              console.error(`Error setting initial visibility for layer ${layer}:`, error);
             }
-          }
+          });
         });
-      });
+
+        // Set initial layer opacity
+        mapState.layerOpacity.forEach((opacity, layerId) => {
+          const layers = getLayersForId(layerId);
+          layers.forEach(layer => {
+            try {
+              if (map.current?.getLayer(layer)) {
+                const layerType = map.current.getLayer(layer)?.type;
+                
+                if (layerType === 'circle') {
+                  map.current.setPaintProperty(layer, 'circle-opacity', opacity);
+                  map.current.setPaintProperty(layer, 'circle-stroke-opacity', opacity * 0.8);
+                } else if (layerType === 'line') {
+                  map.current.setPaintProperty(layer, 'line-opacity', opacity);
+                } else if (layerType === 'symbol') {
+                  map.current.setPaintProperty(layer, 'text-opacity', opacity);
+                  if (map.current.getPaintProperty(layer, 'text-halo-color')) {
+                    map.current.setPaintProperty(layer, 'text-halo-opacity', opacity);
+                  }
+                }
+                console.log(`Initial layer ${layer} opacity set to ${opacity}`);
+              }
+            } catch (error) {
+              console.error(`Error setting initial opacity for layer ${layer}:`, error);
+            }
+          });
+        });
+      }, 500);
 
       // Click handler for sites
       map.current.on('click', 'sites-circles', (e) => {
@@ -256,7 +269,10 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
 
   // Update layer visibility and opacity when mapState changes
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !map.current.isStyleLoaded()) {
+      console.log('Map not ready, skipping layer updates');
+      return;
+    }
 
     console.log('Updating layer visibility and opacity', {
       visibleLayers: Array.from(mapState.visibleLayers),
@@ -271,9 +287,15 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
       const isVisible = mapState.visibleLayers.has(layerId);
       
       layers.forEach(layer => {
-        if (map.current?.getLayer(layer)) {
-          console.log(`Setting layer ${layer} visibility to ${isVisible ? 'visible' : 'none'}`);
-          map.current.setLayoutProperty(layer, 'visibility', isVisible ? 'visible' : 'none');
+        try {
+          if (map.current?.getLayer(layer)) {
+            console.log(`Setting layer ${layer} visibility to ${isVisible ? 'visible' : 'none'}`);
+            map.current.setLayoutProperty(layer, 'visibility', isVisible ? 'visible' : 'none');
+          } else {
+            console.warn(`Layer ${layer} not found in map`);
+          }
+        } catch (error) {
+          console.error(`Error setting visibility for layer ${layer}:`, error);
         }
       });
     });
@@ -282,19 +304,27 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
     mapState.layerOpacity.forEach((opacity, layerId) => {
       const layers = getLayersForId(layerId);
       layers.forEach(layer => {
-        if (map.current?.getLayer(layer)) {
-          const layerType = map.current.getLayer(layer)?.type;
-          console.log(`Setting layer ${layer} opacity to ${opacity}, type: ${layerType}`);
-          
-          if (layerType === 'circle') {
-            map.current.setPaintProperty(layer, 'circle-opacity', opacity);
-            map.current.setPaintProperty(layer, 'circle-stroke-opacity', opacity);
-          } else if (layerType === 'line') {
-            map.current.setPaintProperty(layer, 'line-opacity', opacity);
-          } else if (layerType === 'symbol') {
-            map.current.setPaintProperty(layer, 'text-opacity', opacity);
-            map.current.setPaintProperty(layer, 'text-halo-opacity', opacity);
+        try {
+          if (map.current?.getLayer(layer)) {
+            const layerType = map.current.getLayer(layer)?.type;
+            console.log(`Setting layer ${layer} opacity to ${opacity}, type: ${layerType}`);
+            
+            if (layerType === 'circle') {
+              map.current.setPaintProperty(layer, 'circle-opacity', opacity);
+              map.current.setPaintProperty(layer, 'circle-stroke-opacity', opacity * 0.8);
+            } else if (layerType === 'line') {
+              map.current.setPaintProperty(layer, 'line-opacity', opacity);
+            } else if (layerType === 'symbol') {
+              map.current.setPaintProperty(layer, 'text-opacity', opacity);
+              if (map.current.getPaintProperty(layer, 'text-halo-color')) {
+                map.current.setPaintProperty(layer, 'text-halo-opacity', opacity);
+              }
+            }
+          } else {
+            console.warn(`Layer ${layer} not found for opacity update`);
           }
+        } catch (error) {
+          console.error(`Error setting opacity for layer ${layer}:`, error);
         }
       });
     });
