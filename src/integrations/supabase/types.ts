@@ -1538,6 +1538,10 @@ export type Database = {
         }
         Returns: string
       }
+      normalize_site_text: {
+        Args: { input_text: string }
+        Returns: string
+      }
       path: {
         Args: { "": unknown }
         Returns: unknown
