@@ -163,13 +163,7 @@ export const createMapStyle = (
         paint: {
           'line-color': 'hsl(345, 80%, 15%)', // MEMOIR ruby dark
           'line-width': 0.8,
-          'line-opacity': layerOpacity.sites,
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'ubicazione_confidenza'], 'incerta'],
-            ['literal', [1, 1]], // Dashed for uncertain
-            ['literal', [1, 0]]   // Solid for certain
-          ]
+          'line-opacity': layerOpacity.sites
         }
       },
       

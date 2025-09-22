@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { MapCanvas, MapCanvasRef } from '@/components/map/MapCanvas'
+import { MapCanvasTest } from '@/components/map/MapCanvasTest'
 import { LayerPanel } from '@/components/map/LayerPanel'
 import { SearchBox } from '@/components/map/SearchBox'
 import { FUNCTIONS_BASE, DEFAULT_BBOX, supabase } from '@/lib/supabaseClient'
