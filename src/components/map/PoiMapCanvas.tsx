@@ -24,6 +24,8 @@ export function PoiMapCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [clickMarker, setClickMarker] = useState<maplibregl.Marker | null>(null)
+  const [mouseLat, setMouseLat] = useState<number | null>(null)
+  const [mouseLon, setMouseLon] = useState<number | null>(null)
 
   // Initialize map
   useEffect(() => {
@@ -113,6 +115,15 @@ export function PoiMapCanvas({
       if (clickToPlaceMode) {
         map.getCanvas().style.cursor = 'crosshair'
       }
+      
+      // Resize map after load to ensure proper rendering
+      setTimeout(() => map.resize(), 0)
+    })
+
+    // Real-time coordinate tracking on mouse move
+    map.on('mousemove', (e) => {
+      setMouseLat(+e.lngLat.lat.toFixed(6))
+      setMouseLon(+e.lngLat.lng.toFixed(6))
     })
 
     // Handle clicks on POI features
@@ -128,7 +139,13 @@ export function PoiMapCanvas({
       if (clickToPlaceMode && onMapClick) {
         const features = map.queryRenderedFeatures(e.point, { layers: ['sites-circles'] })
         if (features.length === 0) {
-          onMapClick({ lng: e.lngLat.lng, lat: e.lngLat.lat })
+          const lat = +e.lngLat.lat.toFixed(8)
+          const lng = +e.lngLat.lng.toFixed(8)
+          
+          // Create or update marker immediately
+          ensureMarker(lng, lat)
+          
+          onMapClick({ lng, lat })
         }
       }
     })
@@ -187,40 +204,51 @@ export function PoiMapCanvas({
     canvas.style.cursor = clickToPlaceMode ? 'crosshair' : ''
   }, [clickToPlaceMode])
 
-  // Handle coordinates marker
+  // Helper function to create/ensure marker exists
+  const ensureMarker = (lng?: number, lat?: number) => {
+    if (!mapRef.current || !mapLoaded) return
+    
+    const targetLng = lng ?? coordinates?.lon ?? 16.6
+    const targetLat = lat ?? coordinates?.lat ?? 41.1
+    
+    if (!clickMarker) {
+      // Create new marker
+      const marker = new maplibregl.Marker({
+        color: '#e63946',
+        draggable: true
+      })
+        .setLngLat([targetLng, targetLat])
+        .addTo(mapRef.current)
+      
+      // Handle marker drag
+      marker.on('dragend', () => {
+        const lngLat = marker.getLngLat()
+        const lat = +lngLat.lat.toFixed(8)
+        const lng = +lngLat.lng.toFixed(8)
+        console.log('🎯 Marker dragged to:', { lat, lng })
+        onMapClick?.({ lng, lat })
+      })
+      
+      setClickMarker(marker)
+    } else {
+      // Update existing marker position
+      clickMarker.setLngLat([targetLng, targetLat])
+    }
+  }
+
+  // Handle coordinates marker updates from form
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     
-    // If coordinates exist, update or create marker
     if (coordinates) {
-      if (clickMarker) {
-        // Update existing marker position
-        clickMarker.setLngLat([coordinates.lon, coordinates.lat])
-      } else {
-        // Create new marker
-        const marker = new maplibregl.Marker({
-          color: '#e63946',
-          draggable: true
-        })
-          .setLngLat([coordinates.lon, coordinates.lat])
-          .addTo(mapRef.current)
-        
-        // Handle marker drag
-        marker.on('dragend', () => {
-          const lngLat = marker.getLngLat()
-          console.log('🎯 Marker dragged to:', lngLat)
-          onMapClick?.({ lng: lngLat.lng, lat: lngLat.lat })
-        })
-        
-        // Handle marker drag during movement for real-time feedback
-        marker.on('drag', () => {
-          const lngLat = marker.getLngLat()
-          // Optional: provide real-time feedback during drag
-          // onMapClick?.({ lng: lngLat.lng, lat: lngLat.lat })
-        })
-        
-        setClickMarker(marker)
-      }
+      ensureMarker(coordinates.lon, coordinates.lat)
+      
+      // Center map on new coordinates with smooth animation
+      mapRef.current.easeTo({
+        center: [coordinates.lon, coordinates.lat],
+        zoom: Math.max(mapRef.current.getZoom(), 13),
+        duration: 300
+      })
     } else {
       // Remove marker if no coordinates
       if (clickMarker) {
@@ -228,7 +256,7 @@ export function PoiMapCanvas({
         setClickMarker(null)
       }
     }
-  }, [coordinates, mapLoaded, onMapClick])
+  }, [coordinates, mapLoaded])
 
   // Focus on specific site
   useEffect(() => {
@@ -261,10 +289,18 @@ export function PoiMapCanvas({
   }, [focusSiteId, mapLoaded])
 
   return (
-    <div 
-      ref={containerRef} 
-      className="absolute inset-0 bg-gray-100"
-      style={{ minHeight: '100%' }}
-    />
+    <div className="relative h-full w-full">
+      <div 
+        ref={containerRef} 
+        className="absolute inset-0 bg-gray-100"
+        style={{ minHeight: '100%' }}
+      />
+      
+      {/* Real-time coordinate HUD */}
+      <div className="absolute top-3 right-3 bg-white/90 border rounded px-3 py-1 text-xs shadow-sm z-10 font-mono">
+        <div>Lat: {mouseLat?.toFixed(6) ?? '—'}</div>
+        <div>Lon: {mouseLon?.toFixed(6) ?? '—'}</div>
+      </div>
+    </div>
   )
 }
