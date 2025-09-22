@@ -78,12 +78,7 @@ export default function PoiDetailPage() {
           return
         }
 
-        // Only show published POIs to non-authenticated users
-        if (poiData.stato_validazione !== 'published') {
-          setError('Questo POI non è ancora disponibile pubblicamente')
-          return
-        }
-
+        // Allow access to all POIs for public view
         setPoi(poiData)
 
         // Load media - all media for this site (no validation check for now)
