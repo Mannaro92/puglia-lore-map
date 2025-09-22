@@ -107,32 +107,81 @@ All colors MUST be HSL.
   }
 }
 
-/* WebGIS Specific Colors */
+/* MEMOIR GIS - Archaeological WebGIS Colors */
 :root {
-  /* Archaeological theme colors */
-  --archaeological-primary: 35 70% 45%; /* Earthy brown */
-  --archaeological-secondary: 25 60% 35%; /* Dark brown */
-  --archaeological-accent: 45 80% 50%; /* Golden yellow */
-  --archaeological-success: 120 50% 40%; /* Forest green */
-  --archaeological-warning: 35 90% 55%; /* Amber */
+  /* MEMOIR Brand Colors */
+  --memoir-ruby: 345 70% 27%; /* Deep ruby #8B0022 for sites */
+  --memoir-ruby-dark: 345 80% 15%; /* Darker ruby #4A0010 for outlines */
+  --memoir-gold: 43 85% 47%; /* Golden highlight #D4A017 */
+  --memoir-amber: 35 90% 55%; /* Amber for routes */
   
-  /* Map specific colors */
+  /* Ambito Cultuale Colors (Legend) */
+  --cultuale-cristiano: 122 42% 25%; /* Green #2B7A0B for Christian sites */
+  --cultuale-romano: 4 82% 58%; /* Red #E53935 for Roman sites */
+  --cultuale-messapico: 207 71% 39%; /* Blue #1565C0 for Messapic sites */
+  --cultuale-altro: 0 0% 53%; /* Gray #888888 for other sites */
+  
+  /* Map Interface Colors */
   --map-bg: 210 15% 95%;
   --panel-bg: 0 0% 100%;
   --panel-border: 220 13% 91%;
   --layer-hover: 210 40% 96%;
+  --search-bg: 0 0% 98%;
+  --feature-selected: 43 85% 47%; /* Gold for selected features */
+  
+  /* Transparency & Overlays */
+  --overlay-dark: 0 0% 0% / 0.5;
+  --glass-bg: 0 0% 100% / 0.95;
+  --glass-border: 0 0% 0% / 0.1;
   
   /* Gradients */
-  --gradient-archaeological: linear-gradient(135deg, hsl(var(--archaeological-primary)), hsl(var(--archaeological-accent)));
+  --gradient-memoir: linear-gradient(135deg, hsl(var(--memoir-ruby)), hsl(var(--memoir-gold)));
   --gradient-panel: linear-gradient(180deg, hsl(var(--panel-bg)), hsl(var(--background)));
+  --gradient-glass: linear-gradient(180deg, hsl(var(--glass-bg)), hsl(var(--panel-bg)));
   
   /* Shadows */
   --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-floating: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-map-control: 0 2px 8px rgb(0 0 0 / 0.15);
 }
 
 .dark {
   --panel-bg: 222.2 84% 4.9%;
   --panel-border: 217.2 32.6% 17.5%;
   --layer-hover: 217.2 32.6% 17.5%;
+  --search-bg: 217.2 32.6% 17.5%;
+  --glass-bg: 222.2 84% 4.9% / 0.95;
+}
+
+/* Map Controls & Floating Elements */
+.memoir-control {
+  background: hsl(var(--glass-bg));
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--glass-border));
+  box-shadow: var(--shadow-map-control);
+  border-radius: 8px;
+}
+
+.memoir-panel {
+  background: var(--gradient-panel);
+  border-left: 1px solid hsl(var(--panel-border));
+  box-shadow: var(--shadow-panel);
+}
+
+/* Custom scrollbar for panels */
+.memoir-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.memoir-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.memoir-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.memoir-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }

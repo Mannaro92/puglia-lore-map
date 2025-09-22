@@ -1,7 +1,7 @@
-import { WebGISLayout } from "@/components/WebGISLayout";
+import MapPage from "./Map";
 
 const Index = () => {
-  return <WebGISLayout />;
+  return <MapPage />;
 };
 
 export default Index;
