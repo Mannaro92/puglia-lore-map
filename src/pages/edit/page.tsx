@@ -270,16 +270,28 @@ export default function EditPage() {
 
         {/* Center panel - Form */}
         <div className="flex-1 border-r bg-background">
-          <PoiForm
-            siteId={selectedSiteId || undefined}
-            coordinates={coordinates}
-            onCoordinatesChange={setCoordinates}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            onDelete={handleDelete}
-            onClickToPlace={handleClickToPlace}
-            isClickingToPlace={clickToPlaceMode}
-          />
+          {selectedSiteId !== null ? (
+            <PoiForm
+              siteId={selectedSiteId || undefined}
+              coordinates={coordinates}
+              onCoordinatesChange={setCoordinates}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              onDelete={handleDelete}
+              onClickToPlace={handleClickToPlace}
+              isClickingToPlace={clickToPlaceMode}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">Benvenuto nell'Editor POI</h3>
+                <p className="text-muted-foreground mb-4">
+                  Seleziona un POI esistente dalla lista a sinistra per modificarlo
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Right panel - Map */}
