@@ -262,52 +262,31 @@ export function PoiForm({
     
     setLoading(true)
     try {
-      // Clean and validate UUID arrays to prevent double-quoting  
-      const cleanUuidArray = (arr: string[]) => {
-        return arr.filter(id => id && typeof id === 'string' && id.trim().length > 0)
-                  .map(id => {
-                    // Convert to string and clean multiple layers of quotes
-                    let cleaned = String(id).trim()
-                    
-                    // Remove all surrounding quotes and escape characters iteratively
-                    while (cleaned !== cleaned.replace(/^["'\\]+|["'\\]+$/g, '')) {
-                      cleaned = cleaned.replace(/^["'\\]+|["'\\]+$/g, '')
-                    }
-                    
-                    // Additional safety: remove any remaining escaped quotes
-                    cleaned = cleaned.replace(/\\"/g, '"').replace(/\\'/g, "'")
-                    
-                    console.log(`UUID cleaned: "${id}" -> "${cleaned}"`)
-                    return cleaned
-                  })
+      // Simple UUID validation
+      const isValidUuid = (uuid: string) => {
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        return uuidPattern.test(uuid)
       }
-      
-      // UUID helpers
-      const isUuid = (s: string) => /^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{32})$/.test(s.replace(/-/g, ''))
-      const sanitizeUuid = (v: any) => {
-        let s = String(v ?? '').trim()
-        if (!s) return ''
-        while (s !== s.replace(/^["'\\]+|["'\\]+$/g, '')) {
-          s = s.replace(/^["'\\]+|["'\\]+$/g, '')
-        }
-        s = s.replace(/\\"/g, '"').replace(/\\'/g, "'")
-        return s
+
+      // Clean UUID arrays - keep it simple
+      const cleanUuidArray = (arr: string[]) => {
+        return arr.filter(id => id && typeof id === 'string' && isValidUuid(id.trim()))
       }
 
       const payload = {
         ...formData,
-        ubicazione_confidenza_id: sanitizeUuid(formData.ubicazione_confidenza_id),
-        posizione_id: formData.posizione_id ? sanitizeUuid(formData.posizione_id) : undefined,
+        ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
+        posizione_id: formData.posizione_id || undefined,
         coordinates: coordinates,
         // Clean all UUID arrays
-        cronologia_ids: cleanUuidArray(formData.cronologia_ids).filter(isUuid),
-        definizione_ids: cleanUuidArray(formData.definizione_ids).filter(isUuid),
-        tipo_rinvenimento_ids: cleanUuidArray(formData.tipo_rinvenimento_ids).filter(isUuid),
-        grado_esplorazione_ids: cleanUuidArray(formData.grado_esplorazione_ids).filter(isUuid),
-        strutture_ids: cleanUuidArray(formData.strutture_ids).filter(isUuid),
-        contesti_ids: cleanUuidArray(formData.contesti_ids).filter(isUuid),
-        indicatori_ids: cleanUuidArray(formData.indicatori_ids).filter(isUuid),
-        ambiti_ids: cleanUuidArray(formData.ambiti_ids).filter(isUuid)
+        cronologia_ids: cleanUuidArray(formData.cronologia_ids),
+        definizione_ids: cleanUuidArray(formData.definizione_ids),
+        tipo_rinvenimento_ids: cleanUuidArray(formData.tipo_rinvenimento_ids),
+        grado_esplorazione_ids: cleanUuidArray(formData.grado_esplorazione_ids),
+        strutture_ids: cleanUuidArray(formData.strutture_ids),
+        contesti_ids: cleanUuidArray(formData.contesti_ids),
+        indicatori_ids: cleanUuidArray(formData.indicatori_ids),
+        ambiti_ids: cleanUuidArray(formData.ambiti_ids)
       }
       
       console.log('💾 Saving payload:', payload)
