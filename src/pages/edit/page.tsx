@@ -142,7 +142,6 @@ export default function EditPage() {
 
   const handleSelectSite = (site: UserSite) => {
     console.log('🔍 Selecting site:', site.id, site.toponimo)
-    alert(`Selecting site: ${site.toponimo}`) // Test alert
     setSelectedSiteId(site.id)
     // Update URL without page reload
     window.history.replaceState({}, '', `/edit?site=${site.id}`)
@@ -150,7 +149,6 @@ export default function EditPage() {
 
   const handleCreateNew = () => {
     console.log('➕ Creating new POI')
-    alert('Creating new POI') // Test alert
     setSelectedSiteId(null)
     setCoordinates(null)
     // Update URL to remove site parameter

@@ -121,11 +121,28 @@ export function PoiForm({
     ambiti_ids: []
   })
 
-  // Load lookups and site data
+  // Load lookups and site data / reset when creating new
   useEffect(() => {
     loadLookups()
     if (siteId) {
       loadSiteData()
+    } else {
+      setFormData({
+        id: undefined,
+        toponimo: '',
+        descrizione: '',
+        ubicazione_confidenza_id: '',
+        stato_validazione: 'draft',
+        cronologia_ids: [],
+        definizione_ids: [],
+        tipo_rinvenimento_ids: [],
+        grado_esplorazione_ids: [],
+        strutture_ids: [],
+        contesti_ids: [],
+        indicatori_ids: [],
+        ambiti_ids: []
+      })
+      onCoordinatesChange?.(null)
     }
   }, [siteId])
 
