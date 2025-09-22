@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import { createMapStyle, MapFilters, LayerOpacity } from '@/lib/mapStyle'
+import { MapProvider } from '@/lib/MapContext'
 
 export interface MapCanvasRef {
   getMap: () => maplibregl.Map | null
@@ -24,6 +25,7 @@ interface MapCanvasProps {
   onMoveEnd?: (center: [number, number], zoom: number) => void
   onFeatureClick?: (feature: any) => void
   onFeatureHover?: (feature: any | null) => void
+  children?: React.ReactNode
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
@@ -37,7 +39,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
   onMapLoad,
   onMoveEnd,
   onFeatureClick,
-  onFeatureHover
+  onFeatureHover,
+  children
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
@@ -485,12 +488,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
   }
 
   return (
-    <div 
-      ref={mapContainer} 
-      className="w-full h-full"
-      role="application"
-      aria-label="Mappa interattiva MEMOIR GIS"
-    />
+    <div className="relative w-full h-full">
+      <div 
+        ref={mapContainer} 
+        className="absolute inset-0"
+        role="application"
+        aria-label="Mappa interattiva MEMOIR GIS"
+      />
+      <MapProvider map={mapRef.current}>
+        {children}
+      </MapProvider>
+    </div>
   )
 })
 

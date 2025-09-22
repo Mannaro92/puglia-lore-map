@@ -51,17 +51,23 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     value: string, 
     checked: boolean
   ) => {
-    setFilters(prev => {
-      const currentValues = prev[category] || []
-      const newValues = checked
-        ? [...currentValues, value]
-        : currentValues.filter(v => v !== value)
-      
-      return {
-        ...prev,
-        [category]: newValues.length > 0 ? newValues : undefined
+    const newFilters = {
+      ...filters,
+      [category]: checked
+        ? [...(filters[category] || []), value]
+        : (filters[category] || []).filter(v => v !== value)
+    }
+    
+    // Clean up empty arrays
+    Object.keys(newFilters).forEach(key => {
+      if (newFilters[key as keyof MapFilters]?.length === 0) {
+        delete newFilters[key as keyof MapFilters]
       }
     })
+    
+    setFilters(newFilters)
+    // Apply filters immediately for better UX
+    onFiltersChange(newFilters)
   }
 
   const applyFilters = () => {
@@ -73,7 +79,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     const emptyFilters: MapFilters = {}
     setFilters(emptyFilters)
     onFiltersChange(emptyFilters)
-    setHasChanges(false)
   }
 
   const getActiveCount = () => {
@@ -183,19 +188,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Apply button */}
-      {hasChanges && (
-        <div className="pt-2 border-t border-border">
-          <Button 
-            onClick={applyFilters}
-            className="w-full"
-            size="sm"
-          >
-            Applica Filtri
-          </Button>
-        </div>
-      )}
-
+      {/* Apply button - removed since filters now apply immediately */}
+      
       {/* Active filters summary */}
       {activeCount > 0 && (
         <div className="space-y-2">

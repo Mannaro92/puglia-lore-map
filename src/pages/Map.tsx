@@ -126,16 +126,16 @@ export default function MapPage() {
               layers: serializeLayerConfig(layerVisibility, layerOpacity)
             })
           }}
-        />
-        
-        {/* Search Box */}
-        <div className="absolute top-4 left-4 w-80 z-10">
-          <SearchBox
-            filters={filters}
-            onResultSelect={handleSearchSelect}
-            onGeocodeSelect={handleSearchSelect}
-          />
-        </div>
+        >
+          {/* Search Box */}
+          <div className="absolute top-4 left-4 w-80 z-10">
+            <SearchBox
+              filters={filters}
+              onResultSelect={handleSearchSelect}
+              onGeocodeSelect={handleSearchSelect}
+            />
+          </div>
+        </MapCanvas>
       </div>
 
       {/* Layer Panel */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -9,6 +9,7 @@ import { Eye, EyeOff, Layers, Info } from 'lucide-react'
 import { LayerOpacity } from '@/lib/mapStyle'
 import { Legend } from './Legend'
 import { AdvancedFilters } from './AdvancedFilters'
+import { useMap } from '@/lib/MapContext'
 
 interface LayerConfig {
   id: keyof LayerOpacity | 'sites' | 'province' | 'comuni'
@@ -48,6 +49,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
   onFeatureClose,
   vocabularies
 }) => {
+  const map = useMap()
   const [layerConfigs, setLayerConfigs] = useState<LayerConfig[]>([
     {
       id: 'sites',
@@ -81,21 +83,87 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
     })))
   }, [layerVisibility, layerOpacity])
 
-  const handleVisibilityChange = (layerId: string, visible: boolean) => {
+  const handleVisibilityChange = useCallback((layerId: string, visible: boolean) => {
+    if (!map) return
+    
+    // Get the layer IDs for this layer group
+    const getLayerIds = (layer: string): string[] => {
+      switch (layer) {
+        case 'sites':
+          return ['sites-fill', 'sites-outline', 'sites-points', 'sites-highlight']
+        case 'province':
+          return ['province-fill', 'province-line']
+        case 'comuni':
+          return ['comuni-line']
+        default:
+          return []
+      }
+    }
+    
+    // Toggle visibility for all layers in the group
+    const layerIds = getLayerIds(layerId)
+    layerIds.forEach(id => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none')
+      }
+    })
+    
     setLayerConfigs(prev => prev.map(config => 
       config.id === layerId ? { ...config, visible } : config
     ))
     onLayerToggle(layerId)
-  }
+  }, [map, onLayerToggle])
 
-  const handleOpacityChange = (layerId: keyof LayerOpacity, opacity: number) => {
+  const handleOpacityChange = useCallback((layerId: keyof LayerOpacity, opacity: number) => {
+    if (!map) return
+    
     const opacityValue = opacity / 100 // Convert from 0-100 to 0-1
+    
+    // Apply opacity changes directly to map layers
+    switch (layerId) {
+      case 'sites':
+        if (map.getLayer('sites-fill')) {
+          map.setPaintProperty('sites-fill', 'fill-opacity', [
+            'case',
+            ['==', ['get', 'ubicazione_confidenza'], 'incerta'],
+            opacityValue * 0.35,
+            opacityValue * 0.6
+          ])
+        }
+        if (map.getLayer('sites-outline')) {
+          map.setPaintProperty('sites-outline', 'line-opacity', opacityValue)
+        }
+        if (map.getLayer('sites-points')) {
+          map.setPaintProperty('sites-points', 'circle-opacity', [
+            'case',
+            ['==', ['get', 'ubicazione_confidenza'], 'incerta'],
+            opacityValue * 0.35,
+            opacityValue
+          ])
+        }
+        break
+        
+      case 'province':
+        if (map.getLayer('province-line')) {
+          map.setPaintProperty('province-line', 'line-opacity', opacityValue)
+        }
+        if (map.getLayer('province-fill')) {
+          map.setPaintProperty('province-fill', 'fill-opacity', opacityValue * 0.3)
+        }
+        break
+        
+      case 'comuni':
+        if (map.getLayer('comuni-line')) {
+          map.setPaintProperty('comuni-line', 'line-opacity', opacityValue)
+        }
+        break
+    }
     
     setLayerConfigs(prev => prev.map(config => 
       config.id === layerId ? { ...config, opacity: opacityValue } : config
     ))
     onOpacityChange(layerId, opacityValue)
-  }
+  }, [map, onOpacityChange])
 
   const LayerControls = () => (
     <div className="space-y-6">
