@@ -105,7 +105,8 @@ export default function MapPage() {
       <div className="flex-1 relative">
         <MapCanvas
           ref={mapRef}
-          functionsBase={FUNCTIONS_BASE}
+          supabaseUrl={'https://qdjyzctflpywkblpkniz.supabase.co'}
+          supabaseKey={'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8'}
           initialCenter={urlState.cx && urlState.cy ? [urlState.cx, urlState.cy] : [initialBbox[0] + (initialBbox[2] - initialBbox[0]) / 2, initialBbox[1] + (initialBbox[3] - initialBbox[1]) / 2]}
           initialZoom={urlState.xz || 8}
           filters={filters}

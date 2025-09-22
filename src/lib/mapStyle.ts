@@ -14,34 +14,39 @@ export interface LayerOpacity {
 }
 
 export const createMapStyle = (
-  functionsBase: string,
+  supabaseUrl: string,
+  supabaseKey: string,
   filters: MapFilters = {},
   layerVisibility: Record<string, boolean> = { sites: true, province: true, comuni: true },
   layerOpacity: LayerOpacity = { sites: 0.6, province: 0.7, comuni: 0.5 }
 ): StyleSpecification => {
-  console.log('🎨 Creating map style with functionsBase:', functionsBase)
+  console.log('🎨 Creating map style with Supabase URL:', supabaseUrl)
   console.log('🎨 Filters:', filters)
   console.log('🎨 Layer visibility:', layerVisibility)
-  
-  // Build query params for filters
-  const buildFilterQuery = (layer: string) => {
-    const params = new URLSearchParams()
-    params.set('layer', layer)
+
+  // Build PostgREST query for sites
+  const buildSitesQuery = () => {
+    let query = 'sites_public?select=*'
+    const conditions: string[] = []
     
     if (filters.definizioni?.length) {
-      params.set('definizioni', filters.definizioni.join(','))
+      conditions.push(`definizioni.cs.{${filters.definizioni.join(',')}}`)
     }
     if (filters.cronologie?.length) {
-      params.set('cronologie', filters.cronologie.join(','))
+      conditions.push(`cronologie.cs.{${filters.cronologie.join(',')}}`)
     }
     if (filters.indicatori?.length) {
-      params.set('indicatori', filters.indicatori.join(','))
+      conditions.push(`indicatori.cs.{${filters.indicatori.join(',')}}`)
     }
     if (filters.ambiti?.length) {
-      params.set('ambiti', filters.ambiti.join(','))
+      conditions.push(`ambiti.cs.{${filters.ambiti.join(',')}}`)
     }
     
-    return params.toString()
+    if (conditions.length > 0) {
+      query += '&' + conditions.join('&')
+    }
+    
+    return query
   }
 
   return {
@@ -58,22 +63,25 @@ export const createMapStyle = (
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
       },
       'sites': {
-        type: 'vector',
-        tiles: [`${functionsBase}/tiles/{z}/{x}/{y}.mvt?${buildFilterQuery('sites')}`],
-        minzoom: 6,
-        maxzoom: 16
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
       },
       'province': {
-        type: 'vector',
-        tiles: [`${functionsBase}/tiles/{z}/{x}/{y}.mvt?${buildFilterQuery('province')}`],
-        minzoom: 5,
-        maxzoom: 12
+        type: 'geojson', 
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
       },
       'comuni': {
-        type: 'vector',
-        tiles: [`${functionsBase}/tiles/{z}/{x}/{y}.mvt?${buildFilterQuery('comuni')}`],
-        minzoom: 8,
-        maxzoom: 14
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
       }
     },
     layers: [
@@ -92,7 +100,6 @@ export const createMapStyle = (
         id: 'province-fill',
         type: 'fill',
         source: 'province',
-        'source-layer': 'province',
         layout: {
           visibility: layerVisibility.province ? 'visible' : 'none'
         },
@@ -105,7 +112,6 @@ export const createMapStyle = (
         id: 'province-line',
         type: 'line',
         source: 'province',
-        'source-layer': 'province',
         layout: {
           visibility: layerVisibility.province ? 'visible' : 'none'
         },
@@ -121,7 +127,6 @@ export const createMapStyle = (
         id: 'comuni-line',
         type: 'line',
         source: 'comuni',
-        'source-layer': 'comuni',
         layout: {
           visibility: layerVisibility.comuni ? 'visible' : 'none'
         },
@@ -137,7 +142,6 @@ export const createMapStyle = (
         id: 'sites-fill',
         type: 'fill',
         source: 'sites',
-        'source-layer': 'sites',
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -163,7 +167,6 @@ export const createMapStyle = (
         id: 'sites-outline',
         type: 'line',
         source: 'sites',
-        'source-layer': 'sites',
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -186,7 +189,6 @@ export const createMapStyle = (
         id: 'sites-points',
         type: 'circle',
         source: 'sites',
-        'source-layer': 'sites',
         filter: ['==', ['geometry-type'], 'Point'],
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
@@ -226,7 +228,6 @@ export const createMapStyle = (
         id: 'sites-highlight',
         type: 'line',
         source: 'sites',
-        'source-layer': 'sites',
         layout: {
           visibility: layerVisibility.sites ? 'visible' : 'none'
         },

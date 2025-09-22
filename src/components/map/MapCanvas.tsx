@@ -1,7 +1,6 @@
-import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
+import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import { createMapStyle, MapFilters, LayerOpacity } from '@/lib/mapStyle'
-import { updateMapSources } from '@/lib/tiles'
 
 export interface MapCanvasRef {
   getMap: () => maplibregl.Map | null
@@ -14,7 +13,8 @@ export interface MapCanvasRef {
 }
 
 interface MapCanvasProps {
-  functionsBase: string
+  supabaseUrl: string
+  supabaseKey: string
   initialCenter?: [number, number]
   initialZoom?: number
   filters?: MapFilters
@@ -27,7 +27,8 @@ interface MapCanvasProps {
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
-  functionsBase,
+  supabaseUrl,
+  supabaseKey,
   initialCenter = [16.8, 41.1],
   initialZoom = 8,
   filters = {},
@@ -42,13 +43,143 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
   const mapRef = useRef<maplibregl.Map | null>(null)
   const hoveredFeatureId = useRef<string | null>(null)
 
+  // Load sites data function
+  const loadSitesData = useCallback(async (query: string = 'sites_public?select=*&limit=100') => {
+    if (!mapRef.current) return
+    
+    try {
+      console.log('📡 Loading sites data with query:', query)
+      const response = await fetch(`${supabaseUrl}/rest/v1/${query}`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      })
+      
+      if (response.ok) {
+        const sitesData = await response.json()
+        console.log('✅ Loaded sites data:', sitesData.length, 'sites')
+        
+        const geojsonFeatures = sitesData.map((site: any) => ({
+          type: 'Feature',
+          id: site.id,
+          properties: site,
+          geometry: site.geom_point || site.geom_area || {
+            type: 'Point',
+            coordinates: [16.8, 41.1]
+          }
+        }))
+        
+        const sitesSource = mapRef.current!.getSource('sites') as maplibregl.GeoJSONSource
+        if (sitesSource) {
+          sitesSource.setData({
+            type: 'FeatureCollection',
+            features: geojsonFeatures
+          })
+        }
+      } else {
+        console.error('❌ Failed to load sites:', response.status)
+      }
+    } catch (error) {
+      console.error('❌ Error loading sites data:', error)
+    }
+  }, [supabaseUrl, supabaseKey])
+
+  // Load geographic data function
+  const loadGeoData = useCallback(async () => {
+    if (!mapRef.current) return
+    
+    try {
+      // Load province data
+      const provinceResponse = await fetch(`${supabaseUrl}/rest/v1/province?select=*`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      })
+      
+      if (provinceResponse.ok) {
+        const provinceData = await provinceResponse.json()
+        console.log('✅ Loaded province data:', provinceData.length, 'provinces')
+        
+        const geojsonFeatures = provinceData.map((province: any) => ({
+          type: 'Feature',
+          id: province.id,
+          properties: province,
+          geometry: province.geom
+        }))
+        
+        const provinceSource = mapRef.current!.getSource('province') as maplibregl.GeoJSONSource
+        if (provinceSource) {
+          provinceSource.setData({
+            type: 'FeatureCollection',
+            features: geojsonFeatures
+          })
+        }
+      }
+      
+      // Load comuni data
+      const comuniResponse = await fetch(`${supabaseUrl}/rest/v1/comuni?select=*&limit=200`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      })
+      
+      if (comuniResponse.ok) {
+        const comuniData = await comuniResponse.json()
+        console.log('✅ Loaded comuni data:', comuniData.length, 'comuni')
+        
+        const geojsonFeatures = comuniData.map((comune: any) => ({
+          type: 'Feature',
+          id: comune.id,
+          properties: comune,
+          geometry: comune.geom
+        }))
+        
+        const comuniSource = mapRef.current!.getSource('comuni') as maplibregl.GeoJSONSource
+        if (comuniSource) {
+          comuniSource.setData({
+            type: 'FeatureCollection',
+            features: geojsonFeatures
+          })
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading geographic data:', error)
+    }
+  }, [supabaseUrl, supabaseKey])
+
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
     
     setFilters: (newFilters: MapFilters) => {
-      if (mapRef.current) {
-        updateMapSources(mapRef.current, functionsBase, newFilters)
+      // Build new query for sites with filters
+      let sitesQuery = 'sites_public?select=*'
+      const conditions: string[] = []
+      
+      if (newFilters.definizioni?.length) {
+        conditions.push(`definizioni.cs.{${newFilters.definizioni.join(',')}}`)
       }
+      if (newFilters.cronologie?.length) {
+        conditions.push(`cronologie.cs.{${newFilters.cronologie.join(',')}}`)
+      }
+      if (newFilters.indicatori?.length) {
+        conditions.push(`indicatori.cs.{${newFilters.indicatori.join(',')}}`)
+      }
+      if (newFilters.ambiti?.length) {
+        conditions.push(`ambiti.cs.{${newFilters.ambiti.join(',')}}`)
+      }
+      
+      if (conditions.length > 0) {
+        sitesQuery += '&' + conditions.join('&')
+      }
+      
+      sitesQuery += '&limit=100'
+      
+      // Reload sites data with new filters
+      loadSitesData(sitesQuery)
     },
     
     setLayerOpacity: (layer: keyof LayerOpacity, opacity: number) => {
@@ -165,10 +296,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
       return
     }
 
-    console.log('✅ Creating MapLibre map with functionsBase:', functionsBase)
+    console.log('✅ Creating MapLibre map with Supabase URL:', supabaseUrl)
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: createMapStyle(functionsBase, filters, layerVisibility, layerOpacity),
+      style: createMapStyle(supabaseUrl, supabaseKey, filters, layerVisibility, layerOpacity),
       center: initialCenter,
       zoom: initialZoom,
       maxZoom: 18,
@@ -205,6 +336,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
       
       // Set up interaction handlers
       setupInteractionHandlers(map)
+      
+      // Load initial data
+      loadSitesData()
+      loadGeoData()
     })
 
     map.on('error', (e) => {
@@ -221,7 +356,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
       map.remove()
       mapRef.current = null
     }
-  }, [functionsBase]) // Only recreate if functionsBase changes
+  }, [supabaseUrl, supabaseKey, loadSitesData, loadGeoData])
 
   const setupInteractionHandlers = (map: maplibregl.Map) => {
     const interactiveLayers = ['sites-fill', 'sites-points']
@@ -235,13 +370,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           // Set selected state
           if (hoveredFeatureId.current) {
             map.setFeatureState(
-              { source: 'sites', sourceLayer: 'sites', id: hoveredFeatureId.current },
+              { source: 'sites', id: hoveredFeatureId.current },
               { selected: false }
             )
           }
           
           map.setFeatureState(
-            { source: 'sites', sourceLayer: 'sites', id: feature.id },
+            { source: 'sites', id: feature.id },
             { selected: true }
           )
           
@@ -261,7 +396,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           // Remove hover from previous feature
           if (hoveredFeatureId.current) {
             map.setFeatureState(
-              { source: 'sites', sourceLayer: 'sites', id: hoveredFeatureId.current },
+              { source: 'sites', id: hoveredFeatureId.current },
               { hover: false }
             )
           }
@@ -269,7 +404,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
           // Add hover to current feature
           hoveredFeatureId.current = String(feature.id)
           map.setFeatureState(
-            { source: 'sites', sourceLayer: 'sites', id: hoveredFeatureId.current },
+            { source: 'sites', id: hoveredFeatureId.current },
             { hover: true }
           )
           
@@ -282,7 +417,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
         
         if (hoveredFeatureId.current) {
           map.setFeatureState(
-            { source: 'sites', sourceLayer: 'sites', id: hoveredFeatureId.current },
+            { source: 'sites', id: hoveredFeatureId.current },
             { hover: false }
           )
           hoveredFeatureId.current = null
@@ -302,7 +437,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(({
         // Clicked on empty area - clear selection
         if (hoveredFeatureId.current) {
           map.setFeatureState(
-            { source: 'sites', sourceLayer: 'sites', id: hoveredFeatureId.current },
+            { source: 'sites', id: hoveredFeatureId.current },
             { selected: false }
           )
         }
