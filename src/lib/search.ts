@@ -32,39 +32,25 @@ export interface SearchResponse {
 }
 
 /**
- * Search archaeological sites using PostgREST
+ * Search archaeological sites using RPC function (works without authentication)
  */
 export const searchSites = async (params: SearchParams): Promise<SearchResponse> => {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000)
   
   try {
-    // Build PostgREST query 
-    let query = 'sites?select=id,toponimo,descrizione,centroid,bbox'
-    const conditions: string[] = []
-    
-    // Text search on toponimo e descrizione
-    if (params.q) {
-      conditions.push(`or=(toponimo.ilike.*${params.q}*,descrizione.ilike.*${params.q}*)`)
-    }
-    
-    // Add bbox filter if provided
-    if (params.bbox) {
-      const [minLng, minLat, maxLng, maxLat] = params.bbox.split(',').map(Number)
-      // This would need ST_Intersects in a stored function, for now skip bbox
-    }
-    
-    if (conditions.length > 0) {
-      query += '&' + conditions.join('&')
-    }
-    
-    query += `&limit=${params.limit || 10}`
-    
-    const response = await fetch(`https://qdjyzctflpywkblpkniz.supabase.co/rest/v1/${query}`, {
+    // Use the same RPC that works for public access
+    const response = await fetch(`https://qdjyzctflpywkblpkniz.supabase.co/rest/v1/rpc/rpc_list_sites_bbox`, {
+      method: 'POST',
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8'
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkanl6Y3RmbHB5d2tibHBrbml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1NDA3MjQsImV4cCI6MjA3NDExNjcyNH0.QBBDluN-ixFeJuy8ZWVUBi6E-99kMb9Y8LicXy0f4t8',
+        'Content-Type': 'application/json'
       },
+      body: JSON.stringify({
+        bbox_geom: null, // Get all sites
+        include_drafts: false
+      }),
       signal: controller.signal
     })
     
@@ -74,21 +60,40 @@ export const searchSites = async (params: SearchParams): Promise<SearchResponse>
       throw new Error(`Search failed: ${response.status} ${response.statusText}`)
     }
     
-    const results = await response.json()
+    const data = await response.json()
+    const sites = data.features || []
+    
+    // Filter results based on search query
+    let filteredSites = sites
+    if (params.q) {
+      const query = params.q.toLowerCase()
+      filteredSites = sites.filter((feature: any) => {
+        const properties = feature.properties || {}
+        return (
+          properties.toponimo?.toLowerCase().includes(query) ||
+          properties.descrizione?.toLowerCase().includes(query)
+        )
+      })
+    }
+    
+    // Limit results
+    const limit = params.limit || 10
+    const limitedSites = filteredSites.slice(0, limit)
     
     return {
       success: true,
-      results: results.map((site: any) => ({
-        id: site.id,
-        toponimo: site.toponimo,
-        descrizione: site.descrizione,
-        centroid: site.centroid && site.centroid.coordinates ? [site.centroid.coordinates[0], site.centroid.coordinates[1]] : undefined,
-        bbox: site.bbox && site.bbox.coordinates ? [
-          site.bbox.coordinates[0][0][0], site.bbox.coordinates[0][0][1],
-          site.bbox.coordinates[0][2][0], site.bbox.coordinates[0][2][1]
-        ] : undefined
-      })),
-      total: results.length
+      results: limitedSites.map((feature: any) => {
+        const properties = feature.properties || {}
+        const geometry = feature.geometry || {}
+        
+        return {
+          id: properties.id,
+          toponimo: properties.toponimo,
+          descrizione: properties.descrizione,
+          centroid: geometry.coordinates ? [geometry.coordinates[0], geometry.coordinates[1]] : undefined
+        }
+      }),
+      total: limitedSites.length
     }
     
   } catch (error) {

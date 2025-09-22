@@ -123,10 +123,16 @@ export default function MapPage() {
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setLoginModalOpen(true)}>
-                <LogIn className="w-4 h-4 mr-2" />
-                Login
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={handleEditMode}>
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Nuovo POI
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setLoginModalOpen(true)}>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              </>
             )}
           </div>
         </div>
