@@ -277,6 +277,7 @@ export function MapContainer({ mapState, onMapStateChange, onFeatureClick }: Map
       case 'comuni':
         return ['comuni-boundaries'];
       default:
+        console.warn(`Unknown layer ID: ${layerId}`);
         return [];
     }
   }

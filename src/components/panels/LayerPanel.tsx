@@ -53,35 +53,9 @@ const LAYER_CATEGORIES: LayerCategory[] = [
       {
         id: "comuni",
         name: "Comuni",
-        description: "Confini comunali",
+        description: "Confini amministrativi dei comuni pugliesi",
         defaultVisible: false,
         defaultOpacity: 0.5
-      }
-    ]
-  },
-  {
-    name: "Vincoli",
-    defaultOpen: false,
-    layers: [
-      {
-        id: "vincoli",
-        name: "Vincoli Archeologici",
-        description: "Aree sottoposte a vincolo archeologico",
-        defaultVisible: false,
-        defaultOpacity: 0.8
-      }
-    ]
-  },
-  {
-    name: "Cartografia Storica",
-    defaultOpen: false,
-    layers: [
-      {
-        id: "storica",
-        name: "Carte Storiche",
-        description: "Carte storiche georeferenziate",
-        defaultVisible: false,
-        defaultOpacity: 0.7
       }
     ]
   }
