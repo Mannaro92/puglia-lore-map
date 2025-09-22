@@ -48,6 +48,11 @@ interface FormData {
   ambiti_ids: string[]
 }
 
+interface MediaFile {
+  name: string
+  path: string
+}
+
 export function PoiForm({
   siteId,
   coordinates,
@@ -61,6 +66,8 @@ export function PoiForm({
   const [loading, setLoading] = useState(false)
   const [lookups, setLookups] = useState<LookupData>({})
   const [loadingLookups, setLoadingLookups] = useState(true)
+  const [tempFiles, setTempFiles] = useState<string[]>([])
+  const [sessionId] = useState(getSessionId())
   
   // Controlled string inputs for coordinates
   const [latStr, setLatStr] = useState<string>('')
@@ -238,10 +245,14 @@ export function PoiForm({
     
     setLoading(true)
     try {
-      // Clean and validate UUID arrays to prevent double-quoting
+      // Clean and validate UUID arrays to prevent double-quoting  
       const cleanUuidArray = (arr: string[]) => {
         return arr.filter(id => id && typeof id === 'string' && id.trim().length > 0)
-                  .map(id => id.trim().replace(/^["']|["']$/g, '')) // Remove any surrounding quotes
+                  .map(id => {
+                    // Remove any surrounding quotes and escape characters
+                    const cleaned = id.toString().trim().replace(/^["'\\]*|["'\\]*$/g, '')
+                    return cleaned
+                  })
       }
       
       const payload = {
@@ -262,6 +273,26 @@ export function PoiForm({
       
       const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload })
       if (error) throw error
+      
+      // If we have temp files, move them to the site folder
+      if (!formData.id && tempFiles.length > 0 && newSiteId) {
+        try {
+          const { data: moveResult, error: moveError } = await supabase.functions.invoke('move-temp-to-site', {
+            body: {
+              site_id: newSiteId,
+              session_id: sessionId,
+              files: tempFiles
+            }
+          })
+          if (moveError) {
+            console.warn('Error moving temp files:', moveError)
+          } else {
+            console.log('Moved temp files:', moveResult)
+          }
+        } catch (e) {
+          console.warn('Move temp files failed:', e)
+        }
+      }
       
       toast({
         title: formData.id ? "Sito aggiornato" : "Sito creato",
@@ -537,6 +568,12 @@ export function PoiForm({
           </Card>
         )
       })}
+
+      {/* Media uploader */}
+      <MediaUploader 
+        siteId={formData.id}
+        onTempFilesChange={setTempFiles}
+      />
 
       {/* Publication toggle */}
       <Card>
