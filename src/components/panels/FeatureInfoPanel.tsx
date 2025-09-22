@@ -119,12 +119,13 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       return;
     }
 
-    if (!isUserLoggedIn) {
-      toast({ title: 'Accesso richiesto', description: 'Devi essere loggato per modificare il POI' });
-      return;
+    if (isUserLoggedIn) {
+      // User logged in - navigate to edit page
+      navigate(`/edit?site=${siteId}`);
+    } else {
+      // User not logged in - navigate to detail page
+      navigate(`/poi/${siteId}`);
     }
-
-    navigate(`/edit?site=${siteId}`);
   };
 
   return (
@@ -291,7 +292,7 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       <div className="space-y-2 pt-2">
         <Button variant="outline" size="sm" className="w-full" onClick={handleSchedaCompleta}>
           <ExternalLink className="w-3 h-3 mr-2" />
-          Scheda Completa
+          {isUserLoggedIn ? 'Edit' : 'Scheda Completa'}
         </Button>
       </div>
     </div>
