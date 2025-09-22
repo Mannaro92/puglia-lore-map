@@ -121,9 +121,10 @@ export default function EditPage() {
 
   const handleSave = (savedSiteId: string) => {
     setFocusSiteId(savedSiteId)
-    // Refresh the sites list and select the saved site
+    // Refresh the sites list and close the editor
     loadUserSites()
-    setSelectedSiteId(savedSiteId)
+    setSelectedSiteId(null) // Close the editor
+    setCoordinates(null) // Reset coordinates
     // Refresh map to show new/updated POI
     if (mapRefreshFn) {
       setTimeout(() => mapRefreshFn(), 500)

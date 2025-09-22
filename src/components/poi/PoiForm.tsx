@@ -365,11 +365,13 @@ export function PoiForm({
   }
 
   const toggleMultiSelect = (key: keyof FormData, id: string) => {
+    console.log('🔘 Toggling checkbox:', key, id)
     setFormData(prev => {
-      const currentIds = prev[key] as string[]
+      const currentIds = Array.isArray(prev[key]) ? prev[key] as string[] : []
       const newIds = currentIds.includes(id) 
         ? currentIds.filter(i => i !== id)
         : [...currentIds, id]
+      console.log('🔘 Updated IDs:', newIds)
       return { ...prev, [key]: newIds }
     })
   }
