@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client'
 interface SimpleMapCanvasProps {
   onFeatureClick?: (feature: any) => void
   focusSiteId?: string | null
+  mapCenter?: [number, number] | null
   initialCenter?: [number, number]
   initialZoom?: number
 }
@@ -13,6 +14,7 @@ interface SimpleMapCanvasProps {
 export function SimpleMapCanvas({ 
   onFeatureClick,
   focusSiteId = null,
+  mapCenter = null,
   initialCenter = [16.6, 41.1],
   initialZoom = 8
 }: SimpleMapCanvasProps) {
@@ -182,6 +184,17 @@ export function SimpleMapCanvas({
     
     loadAndFocusSite()
   }, [focusSiteId, mapLoaded])
+
+  // Navigate to specific coordinates
+  useEffect(() => {
+    if (!mapRef.current || !mapCenter || !mapLoaded) return
+    
+    mapRef.current.flyTo({
+      center: mapCenter,
+      zoom: 14,
+      duration: 2000
+    })
+  }, [mapCenter, mapLoaded])
 
   return (
     <div 

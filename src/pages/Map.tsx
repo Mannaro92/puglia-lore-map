@@ -23,7 +23,9 @@ export default function MapPage() {
   
   // Map state
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
-  const focusSiteId = searchParams.get('focus')
+  const [focusSiteId, setFocusSiteId] = useState<string | null>(null)
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
+  const urlFocusSiteId = searchParams.get('focus')
 
   // Check authentication status
   useEffect(() => {
@@ -64,9 +66,39 @@ export default function MapPage() {
     await supabase.auth.signOut()
   }
 
+  // Set focus site from URL parameter
+  useEffect(() => {
+    if (urlFocusSiteId) {
+      setFocusSiteId(urlFocusSiteId)
+    }
+  }, [urlFocusSiteId])
+
   const handleSearchSelect = (result: any) => {
     console.log('Search result selected:', result)
-    // For now just log, can enhance later with map navigation
+    
+    if (result.type === 'site') {
+      // POI result - focus on the site
+      setFocusSiteId(result.id)
+      setMapCenter(null) // Clear manual center
+      
+      // Also trigger feature click to show info panel
+      setTimeout(() => {
+        setSelectedFeature({
+          properties: {
+            id: result.id,
+            toponimo: result.toponimo,
+            descrizione: result.descrizione,
+            stato_validazione: result.stato_validazione
+          }
+        })
+      }, 1000) // Wait for map animation
+      
+    } else if (result.type === 'address') {
+      // Geocode result - center map on coordinates
+      setMapCenter([result.lon, result.lat])
+      setFocusSiteId(null) // Clear site focus
+      setSelectedFeature(null) // Clear feature selection
+    }
   }
 
   return (
@@ -105,6 +137,7 @@ export default function MapPage() {
         <SimpleMapCanvas
           onFeatureClick={handleFeatureClick}
           focusSiteId={focusSiteId}
+          mapCenter={mapCenter}
           initialCenter={[16.6, 41.1]}
           initialZoom={8}
         />
