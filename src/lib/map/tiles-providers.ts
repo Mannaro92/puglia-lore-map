@@ -93,7 +93,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
     format: "raster",
     url: "https://tile.tracestrack.com/topo/{z}/{x}/{y}.png",
     maxzoom: 18,
-    rasterResampling: 'nearest',
+    rasterResampling: 'linear',
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://www.tracestrack.com/">Tracestrack</a>',
     enabled: true
   },
