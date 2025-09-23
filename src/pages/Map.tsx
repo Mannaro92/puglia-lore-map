@@ -53,6 +53,16 @@ export default function MapPage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Handle URL focus parameter
+  useEffect(() => {
+    if (urlFocusSiteId) {
+      setFocusSiteId(urlFocusSiteId)
+      setSelectedFeature(null) // Clear any previous selection
+    } else {
+      setFocusSiteId(null) // Clear focus when no URL parameter
+    }
+  }, [urlFocusSiteId])
+
   const handleFeatureClick = (feature: any) => {
     setSelectedFeature(feature)
   }
@@ -68,13 +78,6 @@ export default function MapPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
-
-  // Set focus site from URL parameter
-  useEffect(() => {
-    if (urlFocusSiteId) {
-      setFocusSiteId(urlFocusSiteId)
-    }
-  }, [urlFocusSiteId])
 
   const handleSearchSelect = (result: any) => {
     if (result.type === 'site') {
