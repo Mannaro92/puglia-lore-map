@@ -35,7 +35,15 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const loadMedia = useCallback(async () => {
     if (!siteId) return
     try {
+      console.debug('[MediaUploader] Loading media for siteId:', siteId)
       const list = await getSiteMedia(siteId)
+      console.debug('[MediaUploader] Media loaded:', list.length, 'items')
+      console.debug('[MediaUploader] Media by type:', {
+        images: list.filter(m => m.tipo === 'image').length,
+        videos: list.filter(m => m.tipo === 'video').length,
+        videoSizes: list.filter(m => m.tipo === 'video').map(m => ({ id: m.id, size_bytes: m.size_bytes }))
+      })
+      
       setMedia(list)
       onMediaListChange?.(list)
       
@@ -43,9 +51,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       const videoBytes = list
         .filter(m => m.tipo === 'video')
         .reduce((sum, m) => sum + (m.size_bytes || 0), 0)
+      
+      console.debug('[MediaUploader] Video quota calculation:', { videoBytes, totalItems: list.length })
       setVideoUsedBytes(videoBytes)
     } catch (e: any) {
-      console.error(e)
+      console.error('[MediaUploader] Error loading media:', e)
       toast({ title: 'Errore caricamento media', description: e?.message || String(e), variant: 'destructive' })
     }
   }, [siteId, onMediaListChange])
@@ -174,12 +184,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     
+    console.debug('[MediaUploader] handleFiles called with', files.length, 'files')
+    
     const validFiles: { file: File; tipo: 'image' | 'video' }[] = []
     
     for (const file of Array.from(files)) {
       const isImage = file.type.startsWith('image/')
       const isVideo = file.type === 'video/mp4'
       const isValidSize = file.size <= MAX_FILE_SIZE
+      
+      console.debug('[MediaUploader] Processing file:', file.name, 'type:', file.type, 'size:', file.size, 'isVideo:', isVideo)
       
       if (!isImage && !isVideo) {
         toast({ 
@@ -205,6 +219,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       })
     }
 
+    console.debug('[MediaUploader] Valid files:', validFiles.length, 'videos:', validFiles.filter(f => f.tipo === 'video').length)
+
     if (validFiles.length === 0) return
 
     // Check video quota
@@ -215,6 +231,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     const currentPendingVideoSize = pendingFiles
       .filter(pf => pf.tipo === 'video')
       .reduce((sum, pf) => sum + pf.file.size, 0)
+    
+    console.debug('[MediaUploader] Video quota check:', {
+      videoUsedBytes,
+      currentPendingVideoSize,
+      newVideoSize,
+      total: videoUsedBytes + currentPendingVideoSize + newVideoSize,
+      limit: VIDEO_QUOTA_BYTES
+    })
     
     if (videoUsedBytes + currentPendingVideoSize + newVideoSize > VIDEO_QUOTA_BYTES) {
       const availableMB = ((VIDEO_QUOTA_BYTES - videoUsedBytes - currentPendingVideoSize) / 1048576).toFixed(1)
@@ -228,15 +252,20 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     
     if (siteId) {
       // Direct upload for existing POI
+      console.debug('[MediaUploader] Starting direct upload for siteId:', siteId)
       setUploading(true)
       try {
         const uploadedItems = []
         
         for (const { file, tipo } of validFiles) {
+          console.debug('[MediaUploader] Uploading file:', file.name, 'tipo:', tipo)
+          
           if (tipo === 'video') {
             // Upload video directly
             const fileName = `${crypto.randomUUID()}.mp4`
             const filePath = `poi/${siteId}/${fileName}`
+            
+            console.debug('[MediaUploader] Uploading video to:', filePath, 'size:', file.size)
             
             const { error: uploadError } = await supabase.storage
               .from('poi-media')
@@ -246,7 +275,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 cacheControl: 'public, max-age=31536000, immutable'
               })
             
-            if (uploadError) throw uploadError
+            if (uploadError) {
+              console.error('[MediaUploader] Video upload error:', uploadError)
+              throw uploadError
+            }
+            
+            console.debug('[MediaUploader] Video uploaded successfully to:', filePath)
             
             uploadedItems.push({
               storage_path: filePath,
@@ -283,16 +317,27 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           }
         }
 
+        console.debug('[MediaUploader] All files uploaded, calling rpc_attach_media with items:', uploadedItems)
+
         // Use RPC to attach media with quota check
-        await supabase.rpc('rpc_attach_media', {
+        const { data: attachedMedia, error: attachError } = await supabase.rpc('rpc_attach_media', {
           p_site_id: siteId,
           p_items: uploadedItems
         })
 
+        if (attachError) {
+          console.error('[MediaUploader] Attach media error:', attachError)
+          throw attachError
+        }
+
+        console.debug('[MediaUploader] Media attached successfully:', attachedMedia)
+
         await loadMedia()
+        console.debug('[MediaUploader] Media reloaded, showing success toast')
+        
         toast({ title: "Upload completato", description: `${validFiles.length} file caricati con successo` })
       } catch (error) {
-        console.error('Error uploading files:', error)
+        console.error('[MediaUploader] Error uploading files:', error)
         const errorMessage = error instanceof Error ? error.message : "Errore nel caricamento dei file"
         toast({ title: "Errore", description: errorMessage, variant: "destructive" })
       } finally {
@@ -300,6 +345,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       }
     } else {
       // Queue for upload when site is created
+      console.debug('[MediaUploader] No siteId, queueing files for later upload')
       const newPendingFiles: PendingFile[] = validFiles.map(({ file, tipo }) => ({
         file,
         tipo,
