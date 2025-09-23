@@ -20,6 +20,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [uploading, setUploading] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [pendingPreviews, setPendingPreviews] = useState<MediaItem[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const loadMedia = useCallback(async () => {
@@ -74,7 +75,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       p_items: uploadedItems
     })
     
-    setPendingFiles([]) // Clear pending files
+    // Clear pending files and previews
+    setPendingFiles([])
+    setPendingPreviews(prev => {
+      // Clean up blob URLs
+      prev.forEach(preview => {
+        if (preview.storage_path.startsWith('blob:')) {
+          URL.revokeObjectURL(preview.storage_path)
+        }
+      })
+      return []
+    })
   }, [pendingFiles])
 
   useEffect(() => {
@@ -85,6 +96,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       onPendingFilesChange?.(null)
     }
   }, [pendingFiles, onPendingFilesChange, uploadPendingFiles])
+
+  // Cleanup blob URLs when component unmounts or pending previews change
+  useEffect(() => {
+    return () => {
+      pendingPreviews.forEach(preview => {
+        if (preview.storage_path.startsWith('blob:')) {
+          URL.revokeObjectURL(preview.storage_path)
+        }
+      })
+    }
+  }, [pendingPreviews])
   
 
   const handleDelete = async (mediaId: string) => {
@@ -116,9 +138,6 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       // Direct upload for existing POI
       setUploading(true)
       try {
-        const uploadedItems: Array<{storage_path: string; tipo: string; titolo: string; ordine: number}> = []
-        const localPreviews: MediaItem[] = []
-        
         for (let i = 0; i < validFiles.length; i++) {
           const file = validFiles[i]
           const compressed = await compressImage(file)
@@ -126,54 +145,63 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           const id = crypto.randomUUID()
           const storagePath = `poi/${siteId}/${id}.${ext}`
           
-          const { error } = await supabase.storage
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
             .from('poi-media')
             .upload(storagePath, compressed, {
               cacheControl: '3600',
               upsert: true
             })
           
-          if (error) throw error
+          if (uploadError) throw uploadError
           
-          uploadedItems.push({
-            storage_path: storagePath,
-            tipo: 'image',
-            titolo: compressed.name,
-            ordine: media.length + i
-          })
+          // Insert directly into media table instead of using RPC
+          const { error: insertError } = await supabase
+            .from('media')
+            .insert({
+              site_id: siteId,
+              storage_path: storagePath,
+              tipo: 'image',
+              titolo: compressed.name,
+              ordine: media.length + i
+            })
           
-          localPreviews.push({
-            id: `tmp-${id}`,
-            site_id: siteId,
-            storage_path: storagePath,
-            tipo: 'image',
-            titolo: compressed.name,
-            licenza: '',
-            ordine: media.length + i,
-            created_at: new Date().toISOString(),
-          } as MediaItem)
+          if (insertError) throw insertError
         }
-        
-        // Optimistic UI update
-        setMedia(prev => [...prev, ...localPreviews])
-        
-        // Attach all media at once
-        await supabase.rpc('rpc_attach_media', {
-          p_site_id: siteId,
-          p_items: uploadedItems
-        })
         
         await loadMedia()
         toast({ title: 'Upload completato' })
       } catch (e: any) {
-        console.error(e)
+        console.error('Upload error:', e)
         toast({ title: 'Errore upload', description: e.message, variant: 'destructive' })
       } finally {
         setUploading(false)
       }
     } else {
-      // Queue files for upload after POI creation
+      // Queue files for upload after POI creation and create previews
+      const newPreviews: MediaItem[] = []
+      
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i]
+        const id = crypto.randomUUID()
+        
+        // Create preview with blob URL for immediate display
+        const blobUrl = URL.createObjectURL(file)
+        
+        newPreviews.push({
+          id: `pending-${id}`,
+          site_id: 'pending',
+          storage_path: blobUrl,
+          tipo: 'image',
+          titolo: file.name,
+          licenza: '',
+          ordine: pendingFiles.length + pendingPreviews.length + i,
+          created_at: new Date().toISOString(),
+        } as MediaItem)
+      }
+      
       setPendingFiles(prev => [...prev, ...validFiles])
+      setPendingPreviews(prev => [...prev, ...newPreviews])
       toast({ title: `${validFiles.length} file pronti per il salvataggio` })
     }
   }
@@ -214,20 +242,34 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           </Button>
         </div>
 
-        {(!siteId && pendingFiles.length > 0) && (
+        {(!siteId && (pendingFiles.length > 0 || pendingPreviews.length > 0)) && (
           <div>
             <p className="text-sm mb-2">File pronti per il salvataggio ({pendingFiles.length})</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {pendingFiles.map((file, index) => (
-                <div key={index} className="rounded border p-2 text-xs flex items-center justify-between">
-                  <span className="truncate">{file.name}</span>
+              {pendingPreviews.map((preview, index) => (
+                <div key={preview.id} className="rounded overflow-hidden border relative group">
+                  <img 
+                    src={preview.storage_path} 
+                    alt={preview.titolo || 'Anteprima'} 
+                    className="w-full h-32 object-cover" 
+                  />
                   <button
-                    onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}
-                    className="ml-2 text-red-500 hover:text-red-700"
+                    onClick={() => {
+                      // Remove from both pending arrays
+                      setPendingFiles(prev => prev.filter((_, i) => i !== index))
+                      setPendingPreviews(prev => {
+                        const updated = prev.filter((_, i) => i !== index)
+                        // Clean up blob URL
+                        URL.revokeObjectURL(preview.storage_path)
+                        return updated
+                      })
+                    }}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Rimuovi file"
                   >
                     <X className="w-3 h-3" />
                   </button>
+                  <div className="p-2 text-xs truncate">{preview.titolo}</div>
                 </div>
               ))}
             </div>
