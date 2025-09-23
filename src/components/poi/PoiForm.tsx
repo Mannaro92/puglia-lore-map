@@ -274,11 +274,27 @@ export function PoiForm({
         return arr.filter(id => id && typeof id === 'string' && isValidUuid(id.trim()))
       }
 
+      // Determine effective coordinates: prefer prop, fallback to inputs
+      const latParsed = parseCoordinate(latStr)
+      const lonParsed = parseCoordinate(lonStr)
+      const effectiveCoords = coordinates ?? ((latParsed != null && lonParsed != null) ? { lat: latParsed, lon: lonParsed } : null)
+
+      // If publishing, require coordinates
+      if (formData.stato_validazione === 'published' && !effectiveCoords) {
+        toast({
+          title: 'Coordinate mancanti',
+          description: 'Per pubblicare è necessario impostare le coordinate (clic sulla mappa o inserisci lat/lon).',
+          variant: 'destructive'
+        })
+        setLoading(false)
+        return
+      }
+
       const payload = {
         ...formData,
         ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
         posizione_id: (formData.posizione_id && isValidUuid(formData.posizione_id)) ? formData.posizione_id : null,
-        coordinates: coordinates,
+        coordinates: effectiveCoords,
         // Clean all UUID arrays once
         cronologia_ids: cleanUuidArray(formData.cronologia_ids),
         definizione_ids: cleanUuidArray(formData.definizione_ids),
