@@ -116,6 +116,13 @@ export const LayerControl: React.FC<LayerControlProps> = ({
   const handleBasemapChange = useCallback((basemapId: string) => {
     if (!map) return;
     
+    // Fallback se basemap non esiste più (es. tracestrack-topo rimosso)
+    const provider = getBasemapProviders().find(p => p.id === basemapId);
+    if (!provider) {
+      console.warn(`Basemap ${basemapId} non trovato, fallback a default`);
+      basemapId = DEFAULT_BASEMAP;
+    }
+    
     const success = setBasemap(map, basemapId);
     if (success) {
       const newState = { ...layerState, basemap: basemapId };
@@ -178,8 +185,8 @@ export const LayerControl: React.FC<LayerControlProps> = ({
       return <DisabledProvider provider={provider} />;
     }
     
-    // Indicatore qualità zoom per basemap topografici
-    const hasZoomLimit = provider.effectiveMaxZoom && provider.effectiveMaxZoom < 17;
+    // Indicatore qualità zoom per basemap con limiti specifici
+    const hasZoomLimit = provider.effectiveMaxZoom && provider.effectiveMaxZoom < 18;
     
     return (
       <Button
@@ -195,7 +202,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
               {provider.name}
               {hasZoomLimit && (
                 <Badge variant="outline" className="text-xs px-1 py-0">
-                  Z{provider.effectiveMaxZoom}
+                  Max Z{provider.effectiveMaxZoom}
                 </Badge>
               )}
             </div>

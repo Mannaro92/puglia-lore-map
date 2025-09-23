@@ -148,52 +148,6 @@ export function SimpleMapCanvas({
       console.error('❌ SimpleMapCanvas error:', e)
     })
 
-    // Gestione intelligente dello zoom per qualità ottimale dei tiles
-    let currentBasemap = DEFAULT_BASEMAP;
-    
-    const updateZoomLimits = (basemapId: string) => {
-      // Trova il provider del basemap attivo
-      const provider = require('@/lib/map/tiles-providers').getProviderById(basemapId);
-      if (provider && provider.effectiveMaxZoom) {
-        const effectiveMax = provider.effectiveMaxZoom;
-        console.log(`🔍 Aggiornamento limite zoom per ${basemapId}: ${effectiveMax}`);
-        
-        // Aggiorna il maxZoom del map
-        map.setMaxZoom(effectiveMax);
-        
-        // Se siamo oltre il limite, riduci lo zoom gradualmente
-        if (map.getZoom() > effectiveMax) {
-          map.easeTo({
-            zoom: effectiveMax - 0.5,
-            duration: 1000
-          });
-        }
-      }
-    };
-
-    // Monitora i cambi di layer per aggiornare i limiti di zoom
-    map.on('sourcedata', (e) => {
-      if (e.sourceId && e.sourceId.startsWith('src-base-')) {
-        const basemapId = e.sourceId.replace('src-base-', '');
-        if (basemapId !== currentBasemap) {
-          currentBasemap = basemapId;
-          updateZoomLimits(basemapId);
-        }
-      }
-    });
-
-    // Avviso quando si raggiunge il zoom massimo di qualità
-    map.on('zoom', () => {
-      const zoom = map.getZoom();
-      const provider = require('@/lib/map/tiles-providers').getProviderById(currentBasemap);
-      
-      if (provider && provider.effectiveMaxZoom && zoom >= provider.effectiveMaxZoom - 0.5) {
-        // Mostra un feedback discreto che si sta raggiungendo il limite di qualità
-        const canvas = map.getCanvas();
-        canvas.style.filter = zoom > provider.effectiveMaxZoom ? 'brightness(0.95)' : '';
-      }
-    });
-
     return () => {
       map.remove()
     }

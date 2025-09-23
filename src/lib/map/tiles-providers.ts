@@ -87,23 +87,9 @@ export const TILE_PROVIDERS: TileProvider[] = [
     enabled: !!THUNDER_KEY
   },
   {
-    id: "tracestrack-topo",
-    name: "Tracestrack Topo",
-    description: "Mappa topografica con curve di livello (zoom limitato)",
-    type: "basemap",
-    format: "raster", 
-    url: "https://tile.tracestrack.com/topo__/{z}/{x}/{y}.png",
-    maxzoom: 15,  // Ridotto per evitare sgranatura
-    effectiveMaxZoom: 15, // Zoom massimo di qualità
-    tileSize: 256,
-    rasterResampling: 'linear',
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://www.tracestrack.com/">Tracestrack</a>',
-    enabled: true
-  },
-  {
     id: "opentopomap",
     name: "OpenTopoMap",
-    description: "Mappa topografica alternativa ad alta qualità",
+    description: "Mappa topografica ad alta qualità",
     type: "basemap",
     format: "raster",
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",

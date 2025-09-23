@@ -166,8 +166,26 @@ export function getInitialLayerState(defaultBasemap = 'osm-standard'): LayerStat
   const urlState = readLayerStateFromURL();
   const storageState = readLayerStateFromStorage();
   
+  // Verifica che il basemap richiesto esista ancora
+  let selectedBasemap = urlState.basemap || storageState.basemap || defaultBasemap;
+  
+  // Importa dinamicamente per evitare circular imports
+  try {
+    const { getBasemapProviders } = require('@/lib/map/tiles-providers');
+    const availableBasemaps = getBasemapProviders();
+    const basemapExists = availableBasemaps.find(p => p.id === selectedBasemap && p.enabled !== false);
+    
+    if (!basemapExists) {
+      console.warn(`Basemap ${selectedBasemap} non disponibile, fallback a ${defaultBasemap}`);
+      selectedBasemap = defaultBasemap;
+    }
+  } catch (e) {
+    console.warn('Errore verifica basemap, uso default:', e);
+    selectedBasemap = defaultBasemap;
+  }
+  
   return {
-    basemap: urlState.basemap || storageState.basemap || defaultBasemap,
+    basemap: selectedBasemap,
     overlays: urlState.overlays || storageState.overlays || [],
     opacities: { ...storageState.opacities, ...urlState.opacities }
   };
