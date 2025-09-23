@@ -111,7 +111,10 @@ export const LayerControl: React.FC<LayerControlProps> = ({
 
   // Handler per cambio basemap
   const handleBasemapChange = useCallback((basemapId: string) => {
-    if (!map) return;
+    if (!map) {
+      console.warn('Mappa non disponibile per cambio basemap');
+      return;
+    }
     
     // Fallback se basemap non esiste più (es. tracestrack-topo rimosso)
     const provider = getBasemapProviders().find(p => p.id === basemapId);
@@ -120,12 +123,21 @@ export const LayerControl: React.FC<LayerControlProps> = ({
       basemapId = DEFAULT_BASEMAP;
     }
     
-    const success = setBasemap(map, basemapId);
-    if (success) {
-      const newState = { ...layerState, basemap: basemapId };
-      persistState(newState);
+    try {
+      const success = setBasemap(map, basemapId);
+      if (success) {
+        const newState = { ...layerState, basemap: basemapId };
+        persistState(newState);
+      }
+    } catch (error) {
+      console.error('Errore cambiando basemap:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile cambiare la mappa di base. Riprovare.",
+        variant: "destructive"
+      });
     }
-  }, [map, layerState, persistState]);
+  }, [map, layerState, persistState, toast]);
 
   // Handler per toggle overlay
   const handleOverlayToggle = useCallback((overlayId: string, enabled: boolean) => {

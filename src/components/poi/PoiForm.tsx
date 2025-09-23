@@ -182,7 +182,7 @@ export function PoiForm({
           site_ambiti(ambito_id)
         `)
         .eq('id', siteId)
-        .single()
+        .maybeSingle(); // Use maybeSingle to avoid errors when no data found
         
       if (error) throw error
       if (!site) return

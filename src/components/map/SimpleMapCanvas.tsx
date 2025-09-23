@@ -148,35 +148,40 @@ export function SimpleMapCanvas({
 
   // Load POI data using RPC function
   const loadPOIData = async () => {
-    if (!mapRef.current) return
+    if (!mapRef.current) {
+      console.warn('Mappa non disponibile per caricamento POI');
+      return;
+    }
     
     try {
-      console.log('📡 Loading POI data...')
+      console.log('📡 Loading POI data...');
       const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
         bbox_geom: null,
         include_drafts: false // Only published POIs for public view
-      })
+      });
       
       if (error) {
-        console.error('❌ Error loading POI data:', error)
-        return
+        console.error('❌ Error loading POI data:', error);
+        return;
       }
       
-      console.log('✅ Loaded POI data:', geojson)
+      console.log('✅ Loaded POI data:', geojson);
       
-      const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource
+      const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource;
       if (source && geojson && typeof geojson === 'object') {
-        source.setData(geojson as any)
+        source.setData(geojson as any);
+      } else {
+        console.warn('Source "sites" non trovato o dati POI non validi');
       }
       
     } catch (error) {
-      console.error('❌ Error in loadPOIData:', error)
+      console.error('❌ Error in loadPOIData:', error);
     }
-  }
+  };
 
   // Focus on specific site
   useEffect(() => {
-    if (!mapRef.current || !focusSiteId || !mapLoaded) return
+    if (!mapRef.current || !focusSiteId || !mapLoaded) return;
     
     const loadAndFocusSite = async () => {
       try {
@@ -184,25 +189,33 @@ export function SimpleMapCanvas({
           .from('sites')
           .select('geom_point')
           .eq('id', focusSiteId)
-          .single()
+          .maybeSingle(); // Use maybeSingle to avoid errors when no data found
           
-        if (error || !data?.geom_point) return
+        if (error) {
+          console.error('Errore caricando dettagli sito:', error);
+          return;
+        }
         
-        const coords = (data.geom_point as any)?.coordinates
+        if (!data?.geom_point) {
+          console.warn(`Sito ${focusSiteId} non trovato o senza coordinate`);
+          return;
+        }
+        
+        const coords = (data.geom_point as any)?.coordinates;
         if (coords && Array.isArray(coords) && coords.length >= 2) {
           mapRef.current!.flyTo({
             center: [coords[0], coords[1]],
             zoom: 14,
             duration: 2000
-          })
+          });
         }
       } catch (error) {
-        console.error('Error focusing on site:', error)
+        console.error('Error focusing on site:', error);
       }
-    }
+    };
     
-    loadAndFocusSite()
-  }, [focusSiteId, mapLoaded])
+    loadAndFocusSite();
+  }, [focusSiteId, mapLoaded]);
 
   // Navigate to specific coordinates
   useEffect(() => {

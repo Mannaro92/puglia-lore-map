@@ -23,11 +23,44 @@ function replaceSubdomain(url: string, subdomains?: string[]): string {
 }
 
 /**
+ * Verifica se lo style della mappa è completamente caricato
+ */
+function isStyleReady(map: Map): boolean {
+  try {
+    return map && (map as any).isStyleLoaded && (map as any).isStyleLoaded() && !!map.getStyle();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ottiene i layers in modo sicuro
+ */
+function getStyleLayers(map: Map): any[] {
+  if (!isStyleReady(map)) {
+    console.warn('Style non ancora caricato, impossibile accedere ai layers');
+    return [];
+  }
+  return map.getStyle()?.layers || [];
+}
+
+/**
+ * Ottiene i sources in modo sicuro
+ */
+function getStyleSources(map: Map): Record<string, any> {
+  if (!isStyleReady(map)) {
+    console.warn('Style non ancora caricato, impossibile accedere ai sources');
+    return {};
+  }
+  return map.getStyle()?.sources || {};
+}
+
+/**
  * Trova il primo layer di tipo symbol (per inserire raster sotto le etichette)
  * Ma sopra i POI circle
  */
 function getFirstSymbolLayerId(map: Map): string | undefined {
-  const layers = map.getStyle().layers || [];
+  const layers = getStyleLayers(map);
   // Inserisce prima dei symbol (etichette)
   const symbolLayer = layers.find(l => l.type === "symbol");
   return symbolLayer?.id;
@@ -35,7 +68,7 @@ function getFirstSymbolLayerId(map: Map): string | undefined {
 
 // Trova il primo layer circle (tipicamente i POI) per inserire overlay sotto i POI
 function getFirstCircleLayerId(map: Map): string | undefined {
-  const layers = map.getStyle().layers || [];
+  const layers = getStyleLayers(map);
   const circleLayer = layers.find(l => l.type === "circle");
   return circleLayer?.id;
 }
@@ -145,7 +178,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
  * Trova il primo layer esistente (per basemap)
  */
 function getFirstLayerId(map: Map): string | undefined {
-  const layers = map.getStyle().layers || [];
+  const layers = getStyleLayers(map);
   return layers.length > 0 ? layers[0].id : undefined;
 }
 
@@ -177,31 +210,40 @@ export function removeProvider(map: Map, providerId: string, type: "basemap" | "
 export function removeAllBasemaps(map: Map): void {
   console.log('🧹 Rimozione di tutte le basemap attive...');
   
-  // Rimuove tutti i layer che iniziano con "lyr-base-"
-  const layers = map.getStyle().layers || [];
-  layers.forEach(layer => {
-    if (layer.id.startsWith('lyr-base-')) {
-      try {
-        map.removeLayer(layer.id);
-        console.log(`✅ Rimosso layer basemap: ${layer.id}`);
-      } catch (e) {
-        console.warn(`Errore rimuovendo layer ${layer.id}:`, e);
-      }
-    }
-  });
+  if (!isStyleReady(map)) {
+    console.warn('Style non caricato, skip rimozione basemaps');
+    return;
+  }
   
-  // Rimuove tutti i source che iniziano con "src-base-"
-  const sources = map.getStyle().sources || {};
-  Object.keys(sources).forEach(sourceId => {
-    if (sourceId.startsWith('src-base-')) {
-      try {
-        map.removeSource(sourceId);
-        console.log(`✅ Rimosso source basemap: ${sourceId}`);
-      } catch (e) {
-        console.warn(`Errore rimuovendo source ${sourceId}:`, e);
+  try {
+    // Rimuove tutti i layer che iniziano con "lyr-base-"
+    const layers = getStyleLayers(map);
+    layers.forEach(layer => {
+      if (layer.id.startsWith('lyr-base-')) {
+        try {
+          map.removeLayer(layer.id);
+          console.log(`✅ Rimosso layer basemap: ${layer.id}`);
+        } catch (e) {
+          console.warn(`Errore rimuovendo layer ${layer.id}:`, e);
+        }
       }
-    }
-  });
+    });
+    
+    // Rimuove tutti i source che iniziano con "src-base-"
+    const sources = getStyleSources(map);
+    Object.keys(sources).forEach(sourceId => {
+      if (sourceId.startsWith('src-base-')) {
+        try {
+          map.removeSource(sourceId);
+          console.log(`✅ Rimosso source basemap: ${sourceId}`);
+        } catch (e) {
+          console.warn(`Errore rimuovendo source ${sourceId}:`, e);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Errore generale nella rimozione basemaps:', error);
+  }
 }
 
 /**
@@ -209,6 +251,11 @@ export function removeAllBasemaps(map: Map): void {
  */
 export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean {
   console.log(`🗺️ Cambio basemap a: ${newBasemapId}`);
+  
+  if (!map) {
+    console.error('Mappa non disponibile');
+    return false;
+  }
   
   const newProvider = getProviderById(newBasemapId);
   if (!newProvider || newProvider.type !== "basemap") {
@@ -228,6 +275,15 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
       return setBasemap(map, DEFAULT_BASEMAP, opacity);
     }
     return false;
+  }
+
+  // Attendi che lo style sia pronto prima di procedere
+  if (!isStyleReady(map)) {
+    console.log('Style non pronto, attendo caricamento...');
+    ensureStyleReady(map, () => {
+      setBasemap(map, newBasemapId, opacity);
+    });
+    return true; // Pianificato
   }
 
   // 1) RIMOZIONE ATOMICA: rimuovi TUTTE le basemap precedenti
@@ -300,38 +356,47 @@ export function getActiveLayersState(map: Map): {
   overlays: string[];
   opacities: Record<string, number>;
 } {
-  const layers = map.getStyle().layers || [];
   const result = {
     basemap: null as string | null,
     overlays: [] as string[],
     opacities: {} as Record<string, number>
   };
 
-  layers.forEach((layer: any) => {
-    // Basemap: lyr-base-<id>
-    if (layer.id.startsWith('lyr-base-')) {
-      const providerId = layer.id.replace('lyr-base-', '');
-      const provider = getProviderById(providerId);
-      
-      if (provider && provider.type === 'basemap') {
-        const opacity = layer.paint?.['raster-opacity'] ?? 1;
-        result.opacities[providerId] = opacity;
-        result.basemap = providerId;
+  if (!isStyleReady(map)) {
+    console.warn('Style non caricato, impossibile leggere stato layers');
+    return result;
+  }
+
+  try {
+    const layers = getStyleLayers(map);
+    layers.forEach((layer: any) => {
+      // Basemap: lyr-base-<id>
+      if (layer.id.startsWith('lyr-base-')) {
+        const providerId = layer.id.replace('lyr-base-', '');
+        const provider = getProviderById(providerId);
+        
+        if (provider && provider.type === 'basemap') {
+          const opacity = layer.paint?.['raster-opacity'] ?? 1;
+          result.opacities[providerId] = opacity;
+          result.basemap = providerId;
+        }
       }
-    }
-    
-    // Overlay: lyr-ov-<id>  
-    if (layer.id.startsWith('lyr-ov-')) {
-      const providerId = layer.id.replace('lyr-ov-', '');
-      const provider = getProviderById(providerId);
       
-      if (provider && provider.type === 'overlay') {
-        const opacity = layer.paint?.['raster-opacity'] ?? 1;
-        result.opacities[providerId] = opacity;
-        result.overlays.push(providerId);
+      // Overlay: lyr-ov-<id>  
+      if (layer.id.startsWith('lyr-ov-')) {
+        const providerId = layer.id.replace('lyr-ov-', '');
+        const provider = getProviderById(providerId);
+        
+        if (provider && provider.type === 'overlay') {
+          const opacity = layer.paint?.['raster-opacity'] ?? 1;
+          result.opacities[providerId] = opacity;
+          result.overlays.push(providerId);
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('Errore leggendo stato layers:', error);
+  }
 
   return result;
 }

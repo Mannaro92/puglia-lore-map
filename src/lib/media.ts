@@ -65,7 +65,7 @@ export async function insertMedia(data: Omit<MediaItem, 'id' | 'created_at'>): P
       ordine: data.ordine,
     })
     .select('*')
-    .single()
+    .maybeSingle(); // Use maybeSingle to avoid errors when no data found
 
   if (error) throw error
   return media as unknown as MediaItem

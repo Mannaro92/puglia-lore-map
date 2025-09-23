@@ -284,7 +284,7 @@ export function PoiMapCanvas({
 
   // Focus on specific site
   useEffect(() => {
-    if (!mapRef.current || !focusSiteId || !mapLoaded) return
+    if (!mapRef.current || !focusSiteId || !mapLoaded) return;
     
     const loadAndFocusSite = async () => {
       try {
@@ -292,25 +292,33 @@ export function PoiMapCanvas({
           .from('sites')
           .select('geom_point')
           .eq('id', focusSiteId)
-          .single()
+          .maybeSingle(); // Use maybeSingle to avoid errors when no data found
           
-        if (error || !data?.geom_point) return
+        if (error) {
+          console.error('Errore caricando dettagli sito:', error);
+          return;
+        }
         
-        const coords = (data.geom_point as any)?.coordinates
+        if (!data?.geom_point) {
+          console.warn(`Sito ${focusSiteId} non trovato o senza coordinate`);
+          return;
+        }
+        
+        const coords = (data.geom_point as any)?.coordinates;
         if (coords && Array.isArray(coords) && coords.length >= 2) {
           mapRef.current!.flyTo({
             center: [coords[0], coords[1]],
             zoom: 14,
             duration: 2000
-          })
+          });
         }
       } catch (error) {
-        console.error('Error focusing on site:', error)
+        console.error('Error focusing on site:', error);
       }
-    }
+    };
     
-    loadAndFocusSite()
-  }, [focusSiteId, mapLoaded])
+    loadAndFocusSite();
+  }, [focusSiteId, mapLoaded]);
 
   return (
     <div className="relative h-full w-full">
@@ -326,5 +334,5 @@ export function PoiMapCanvas({
         <div>Lon: {mouseLon?.toFixed(6) ?? '—'}</div>
       </div>
     </div>
-  )
+  );
 }
