@@ -1,4 +1,4 @@
-import { getFunctionUrl } from './supabaseClient'
+import { supabase } from '@/integrations/supabase/client'
 
 export interface SearchParams {
   q?: string
@@ -149,7 +149,7 @@ export const geocodeAddress = async (query: string): Promise<GeocodeResponse> =>
   
   try {
     // Try internal geocode function first
-    const url = `${getFunctionUrl('/geocode')}?` + new URLSearchParams({ q: query })
+    const url = `https://qdjyzctflpywkblpkniz.supabase.co/functions/v1/geocode?` + new URLSearchParams({ q: query })
     const response = await fetch(url, {
       method: 'GET',
       headers: {

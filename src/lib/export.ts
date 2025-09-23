@@ -1,4 +1,7 @@
-import { getFunctionUrl } from './supabaseClient'
+import { supabase } from '@/integrations/supabase/client'
+
+const FUNCTIONS_BASE = `https://qdjyzctflpywkblpkniz.supabase.co/functions/v1`
+const getFunctionUrl = (path: string) => `${FUNCTIONS_BASE}${path}`
 
 export type ExportFormat = 'geojson' | 'csv' | 'kml'
 

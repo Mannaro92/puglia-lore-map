@@ -333,9 +333,8 @@ export function PoiMapCanvas({
         className="absolute inset-0 bg-gray-100"
         style={{ minHeight: '100%' }}
       />
-      
       {/* Real-time coordinate HUD */}
-      <div className="absolute top-3 right-3 bg-white/90 border rounded px-3 py-1 text-xs shadow-sm z-10 font-mono">
+      <div className="absolute top-3 right-3 bg-background/90 border rounded px-3 py-1 text-xs shadow-sm z-10 font-mono">
         <div>Lat: {mouseLat?.toFixed(6) ?? '—'}</div>
         <div>Lon: {mouseLon?.toFixed(6) ?? '—'}</div>
       </div>
