@@ -112,6 +112,10 @@ export default function PoiDetailPage() {
   }, [id])
 
   const handleBackToMap = () => {
+    navigate('/')
+  }
+
+  const handleViewOnMap = () => {
     navigate(`/?focus=${id}`)
   }
 
@@ -157,7 +161,7 @@ export default function PoiDetailPage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleBackToMap}>
+            <Button variant="outline" size="sm" onClick={handleViewOnMap}>
               <ExternalLink className="w-4 h-4 mr-2" />
               Visualizza sulla mappa
             </Button>
