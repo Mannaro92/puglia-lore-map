@@ -429,6 +429,9 @@ export function PoiForm({
         description: `Sito ${statusMessage}!`
       })
       
+      // Ensure local state keeps the saved fonte immediately after save
+      setFormData(prev => ({ ...prev, id: savedId!, fonte: payload.fonte ?? prev.fonte }))
+      
       setHasUnsavedChanges(false)
       onSave?.(savedId!)
       
