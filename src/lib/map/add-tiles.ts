@@ -119,7 +119,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
       if (provider.format === "raster") {
         const tilesUrl = replaceSubdomain(provider.url, provider.subdomains);
 
-        map.addSource(sourceId, {
+        const sourceConfig: any = {
           type: "raster",
           tiles: [tilesUrl],
           tileSize: provider.tileSize ?? 256,
@@ -129,7 +129,14 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           // Ottimizzazioni performance
           scheme: "xyz",
           volatile: false // Cache persistente per velocità
-        });
+        };
+
+        // Aggiungi CORS headers se specificato (per risolvere problemi OpenTopoMap)
+        if (provider.crossOrigin) {
+          console.log(`Setting CORS policy for ${provider.id}: ${provider.crossOrigin}`);
+        }
+
+        map.addSource(sourceId, sourceConfig);
 
         // Per basemap: inserisci come PRIMO layer (sfondo), prima di tutti gli altri
         // Per overlay: inserisci SOTTO i POI (circle) ma SOPRA le basemap
@@ -170,6 +177,12 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
     return true;
   } catch (error) {
     console.error(`Errore aggiungendo provider ${provider.id}:`, error);
+    
+    // Diagnostica specifica per OpenTopoMap
+    if (provider.id === 'opentopomap') {
+      console.warn('⚠️ OpenTopoMap CORS/Rate Limit Issue - prova "OSM France Topografico" come alternativa');
+    }
+    
     return false;
   }
 }

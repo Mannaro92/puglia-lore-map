@@ -88,17 +88,30 @@ export const TILE_PROVIDERS: TileProvider[] = [
   },
   {
     id: "opentopomap",
-    name: "OpenTopoMap",
-    description: "Mappa topografica ad alta qualità",
+    name: "OpenTopoMap", 
+    description: "Mappa topografica (limitazioni CORS possibili)",
     type: "basemap",
-    format: "raster",
-    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    subdomains: ["a", "b", "c"],
+    format: "raster", 
+    url: "https://tile.opentopomap.org/{z}/{x}/{y}.png", // Rimosso subdomains per evitare CORS issues
     maxzoom: 17,
-    effectiveMaxZoom: 16, // OpenTopoMap qualità fino a zoom 16
+    effectiveMaxZoom: 16,
     tileSize: 256,
     rasterResampling: 'linear',
+    crossOrigin: "anonymous", // Tentativo di risoluzione CORS
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    enabled: true
+  },
+  {
+    id: "osm-france-topo",
+    name: "OSM France Topografico",
+    description: "Mappa topografica francese (più stabile)", 
+    type: "basemap",
+    format: "raster",
+    url: "https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c"],
+    maxzoom: 20,
+    tileSize: 256,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © OSM France',
     enabled: true
   },
   {
@@ -175,4 +188,4 @@ export const getOverlayProviders = (): TileProvider[] =>
 export const getProviderById = (id: string): TileProvider | undefined => 
   TILE_PROVIDERS.find(p => p.id === id);
 
-export const DEFAULT_BASEMAP = "osm-standard";
+export const DEFAULT_BASEMAP = "osm-france-topo"; // Cambiato da osm-standard per dare una mappa topografica come default
