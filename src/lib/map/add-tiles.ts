@@ -88,6 +88,22 @@ function ensureStyleReady(map: Map, cb: () => void) {
 }
 
 /**
+ * Mantiene i layer dei POI sempre in cima
+ */
+export function ensurePoiOnTop(map: Map): void {
+  try {
+    if (map.getLayer('sites-circles')) {
+      map.moveLayer('sites-circles'); // porta sopra le basemap/overlay
+    }
+    if (map.getLayer('sites-labels')) {
+      map.moveLayer('sites-labels'); // etichette sopra ai cerchi
+    }
+  } catch (e) {
+    console.warn('ensurePoiOnTop: impossibile riordinare i layer', e);
+  }
+}
+
+/**
  * Aggiunge o aggiorna un provider nella mappa
  */
 export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): boolean {
@@ -312,6 +328,8 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
   }
   
   console.log(`✅ Basemap ${newBasemapId} ${success ? 'caricata' : 'fallita'}`);
+  // Assicura che i POI restino sopra dopo il cambio basemap
+  setTimeout(() => ensurePoiOnTop(map), 0);
   return success;
 }
 
@@ -333,8 +351,10 @@ export function toggleOverlay(map: Map, overlayId: string, enable?: boolean, opa
   const shouldEnable = enable !== undefined ? enable : !hasLayer;
 
   if (shouldEnable && !hasLayer) {
-    // Aggiungi overlay
-    return ensureProvider(map, provider, opacity);
+    // Aggiungi overlay e mantieni POI sopra
+    const ok = ensureProvider(map, provider, opacity);
+    setTimeout(() => ensurePoiOnTop(map), 0);
+    return ok;
   } else if (!shouldEnable && hasLayer) {
     // Rimuovi overlay
     removeProvider(map, overlayId, "overlay");
