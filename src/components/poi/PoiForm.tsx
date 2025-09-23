@@ -303,11 +303,11 @@ export function PoiForm({
       console.log('💾 stato_validazione in formData:', formData.stato_validazione)
       console.log('💾 stato_validazione in payload:', payload.stato_validazione)
       
-      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { site_data: payload })
+      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload, site_data: payload } as any)
       if (error) throw error
 
       // Ensure relation tables mirror current selections (draft or published)
-      const savedId = (newSiteId as any)?.id || formData.id!
+      const savedId = (typeof newSiteId === 'string' ? newSiteId : (newSiteId as any)?.id) || formData.id!
       try {
         const pairs: Array<[string, string, string[]]> = [
           ['site_cronologia', 'cronologia_id', payload.cronologia_ids || payload.cronologie || []],
@@ -336,6 +336,17 @@ export function PoiForm({
         await Promise.all(pairs.map(([t, c, ids]) => syncLink(t, c, ids)))
       } catch (relErr) {
         console.warn('Relation sync warning:', relErr)
+      }
+      // Verify status persisted in DB
+      try {
+        const { data: verifyRow } = await supabase
+          .from('sites')
+          .select('stato_validazione')
+          .eq('id', savedId)
+          .maybeSingle();
+        console.log('🔎 DB stato_validazione:', verifyRow?.stato_validazione, '(expected:', formData.stato_validazione, ')')
+      } catch (e) {
+        console.warn('Verify status failed:', e)
       }
       
       // If we have temp files, move them to the site folder
