@@ -64,10 +64,12 @@ export function PoiForm({
   isClickingToPlace
 }: PoiFormProps) {
   const [loading, setLoading] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
   const [lookups, setLookups] = useState<LookupData>({})
   const [loadingLookups, setLoadingLookups] = useState(true)
   const [tempFiles, setTempFiles] = useState<string[]>([])
   const [sessionId] = useState(getSessionId())
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   
   // Controlled string inputs for coordinates
   const [latStr, setLatStr] = useState<string>('')
@@ -231,7 +233,7 @@ export function PoiForm({
     }
   }
 
-  const handleSave = async () => {
+  const handleSave = async (saveAndExit = true) => {
     // Validation
     if (!formData.toponimo.trim()) {
       toast({
@@ -260,7 +262,8 @@ export function PoiForm({
       return
     }
     
-    setLoading(true)
+    const isLoadingState = saveAndExit ? setLoading : setSavingDraft
+    isLoadingState(true)
     try {
       // Simple UUID validation
       const isValidUuid = (uuid: string) => {
@@ -316,10 +319,19 @@ export function PoiForm({
       
       toast({
         title: formData.id ? "Sito aggiornato" : "Sito creato",
-        description: "Salvato con successo!"
+        description: saveAndExit ? "Salvato con successo!" : "Salvato in bozza con successo!"
       })
       
-      onSave?.((newSiteId as any)?.id || formData.id!)
+      setHasUnsavedChanges(false)
+      
+      if (saveAndExit) {
+        onSave?.((newSiteId as any)?.id || formData.id!)
+      } else {
+        // Update formData.id if it's a new site
+        if (!formData.id && newSiteId) {
+          setFormData(prev => ({ ...prev, id: (newSiteId as any)?.id || newSiteId }))
+        }
+      }
       
     } catch (error: any) {
       console.error('Save error:', error)
@@ -329,8 +341,19 @@ export function PoiForm({
         variant: "destructive"
       })
     } finally {
-      setLoading(false)
+      isLoadingState(false)
     }
+  }
+
+  const handleSaveDraft = async () => {
+    // Force draft status and save without exiting
+    const currentStatus = formData.stato_validazione
+    setFormData(prev => ({ ...prev, stato_validazione: 'draft' }))
+    
+    // Small delay to ensure state is updated
+    setTimeout(() => {
+      handleSave(false)
+    }, 100)
   }
 
   const handleDelete = async () => {
@@ -365,19 +388,22 @@ export function PoiForm({
   }
 
   const toggleMultiSelect = (key: keyof FormData, id: string) => {
-    console.log('🔘 Toggling checkbox:', key, id)
     setFormData(prev => {
       const currentIds = Array.isArray(prev[key]) ? prev[key] as string[] : []
       const newIds = currentIds.includes(id) 
         ? currentIds.filter(i => i !== id)
         : [...currentIds, id]
-      console.log('🔘 Updated IDs:', newIds)
       return { ...prev, [key]: newIds }
     })
+    setHasUnsavedChanges(true)
   }
 
+  // Track changes in form fields
+  useEffect(() => {
+    setHasUnsavedChanges(true)
+  }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione])
+
   const canSave = formData.toponimo.trim() && formData.descrizione.trim() && formData.ubicazione_confidenza_id
-  const hasUnsavedChanges = formData.toponimo || formData.descrizione || formData.ubicazione_confidenza_id
 
   if (loadingLookups) {
     return (
@@ -465,7 +491,10 @@ export function PoiForm({
             <Input
               id="toponimo"
               value={formData.toponimo}
-              onChange={(e) => setFormData(prev => ({ ...prev, toponimo: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, toponimo: e.target.value }))
+                setHasUnsavedChanges(true)
+              }}
               placeholder="Nome del sito archeologico"
               required
             />
@@ -476,7 +505,10 @@ export function PoiForm({
             <Textarea
               id="descrizione"
               value={formData.descrizione}
-              onChange={(e) => setFormData(prev => ({ ...prev, descrizione: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, descrizione: e.target.value }))
+                setHasUnsavedChanges(true)
+              }}
               placeholder="Descrizione dettagliata del sito"
               rows={4}
               required
@@ -487,7 +519,10 @@ export function PoiForm({
             <Label htmlFor="ubicazione">Ubicazione *</Label>
             <Select
               value={formData.ubicazione_confidenza_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, ubicazione_confidenza_id: value }))}
+              onValueChange={(value) => {
+                setFormData(prev => ({ ...prev, ubicazione_confidenza_id: value }))
+                setHasUnsavedChanges(true)
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleziona ubicazione confidenza" />
@@ -514,7 +549,10 @@ export function PoiForm({
             <Label htmlFor="posizione">Posizione</Label>
             <Select
               value={formData.posizione_id || ''}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, posizione_id: value }))}
+              onValueChange={(value) => {
+                setFormData(prev => ({ ...prev, posizione_id: value }))
+                setHasUnsavedChanges(true)
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleziona posizione" />
@@ -534,7 +572,10 @@ export function PoiForm({
             <Input
               id="indirizzo"
               value={formData.indirizzo_libero || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, indirizzo_libero: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, indirizzo_libero: e.target.value }))
+                setHasUnsavedChanges(true)
+              }}
               placeholder="Indirizzo o riferimenti topografici"
             />
           </div>
@@ -606,15 +647,21 @@ export function PoiForm({
           <div className="flex items-center space-x-2">
             <Switch
               checked={formData.stato_validazione === 'published'}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) => {
                 setFormData(prev => ({ 
                   ...prev, 
                   stato_validazione: checked ? 'published' : 'draft' 
                 }))
-              }
+                setHasUnsavedChanges(true)
+              }}
             />
             <Label>Pubblica subito</Label>
           </div>
+          {hasUnsavedChanges && (
+            <p className="text-sm text-orange-600 mt-1">
+              ⚠️ Modifiche non salvate - clicca "Salva in Bozza" per conservare i dati
+            </p>
+          )}
           <p className="text-sm text-gray-600 mt-2">
             {formData.stato_validazione === 'published' 
               ? 'Il sito sarà visibile pubblicamente'
@@ -653,12 +700,21 @@ export function PoiForm({
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={loading}>
+          <Button variant="outline" onClick={onCancel} disabled={loading || savingDraft}>
             Annulla
           </Button>
           <Button 
-            onClick={handleSave} 
-            disabled={loading}
+            onClick={handleSaveDraft} 
+            disabled={!canSave || loading || savingDraft}
+            variant="secondary"
+          >
+            {savingDraft && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Save className="w-4 h-4 mr-2" />
+            Salva in Bozza
+          </Button>
+          <Button 
+            onClick={() => handleSave(true)} 
+            disabled={!canSave || loading || savingDraft}
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Save className="w-4 h-4 mr-2" />
