@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -70,6 +70,10 @@ export function PoiForm({
   const [pendingUploadFn, setPendingUploadFn] = useState<((siteId: string) => Promise<void>) | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   
+  // ✅ Fix: Prevent autosave at mount and track data readiness
+  const didMount = useRef(false)
+  const [dataReady, setDataReady] = useState(false)
+  
   // Controlled string inputs for coordinates
   const [latStr, setLatStr] = useState<string>('')
   const [lonStr, setLonStr] = useState<string>('')
@@ -128,14 +132,16 @@ export function PoiForm({
   useEffect(() => {
     loadLookups()
     if (siteId) {
+      setDataReady(false) // ✅ Reset data ready flag
       loadSiteData()
     } else {
-      setFormData({
+      // ✅ Initialize form for new POI (but don't trigger unsaved changes)
+      const newFormData = {
         id: undefined,
         toponimo: '',
         descrizione: '',
         ubicazione_confidenza_id: '',
-        stato_validazione: 'draft',
+        stato_validazione: 'draft' as const,
         cronologia_ids: [],
         definizione_ids: [],
         tipo_rinvenimento_ids: [],
@@ -146,8 +152,11 @@ export function PoiForm({
         ambiti_ids: [],
         biblio_ids: [],
         fonte: ''
-      })
+      }
+      setFormData(newFormData)
       onCoordinatesChange?.(null)
+      setDataReady(true) // ✅ New form is ready
+      setHasUnsavedChanges(false) // ✅ New form is not dirty
     }
   }, [siteId])
 
@@ -172,6 +181,7 @@ export function PoiForm({
     if (!siteId) return
     
     setLoading(true)
+    setDataReady(false) // ✅ Mark data as not ready during load
     try {
       const { data: site, error } = await supabase
         .from('sites')
@@ -209,7 +219,8 @@ export function PoiForm({
         }
       }
       
-      setFormData({
+      // ✅ Normalize all arrays to prevent undefined
+      const normalizedFormData = {
         id: site.id,
         toponimo: site.toponimo || '',
         descrizione: site.descrizione || '',
@@ -217,7 +228,7 @@ export function PoiForm({
         posizione_id: site.posizione_id || '',
         indirizzo_libero: site.indirizzo_libero || '',
         stato_validazione: (site.stato_validazione === 'review' ? 'draft' : site.stato_validazione) || 'draft',
-        fonte: site.fonte || '', // ✅ FIX: Map fonte field from database
+        fonte: site.fonte || '', 
         cronologia_ids: site.site_cronologia?.map((r: any) => r.cronologia_id) || [],
         definizione_ids: site.site_definizione?.map((r: any) => r.definizione_id) || [],
         tipo_rinvenimento_ids: site.site_tipo_rinvenimento?.map((r: any) => r.tipo_rinvenimento_id) || [],
@@ -227,7 +238,11 @@ export function PoiForm({
         indicatori_ids: site.site_indicatori?.map((r: any) => r.indicatore_id) || [],
         ambiti_ids: site.site_ambiti?.map((r: any) => r.ambito_id) || [],
         biblio_ids: site.site_biblio?.map((r: any) => r.biblio_id) || []
-      })
+      }
+      
+      setFormData(normalizedFormData)
+      setDataReady(true) // ✅ Data is now ready
+      setHasUnsavedChanges(false) // ✅ Fresh data is not dirty
       
     } catch (error: any) {
       console.error('Error loading site:', error)
@@ -236,12 +251,19 @@ export function PoiForm({
         description: error.message,
         variant: "destructive"
       })
+      setDataReady(false) // ✅ Keep data not ready on error
     } finally {
       setLoading(false)
     }
   }
 
   const handleSave = async () => {
+    // ✅ Guard: Don't save if data is not ready
+    if (!dataReady) {
+      console.warn('Save blocked: data not ready')
+      return
+    }
+    
     // Validation
     if (!formData.toponimo.trim()) {
       toast({
@@ -481,6 +503,8 @@ export function PoiForm({
   }
 
   const toggleMultiSelect = (key: keyof FormData, id: string) => {
+    if (!dataReady) return // ✅ Prevent changes before data is ready
+    
     setFormData(prev => {
       const currentIds = Array.isArray(prev[key]) ? prev[key] as string[] : []
       const newIds = currentIds.includes(id) 
@@ -491,11 +515,16 @@ export function PoiForm({
     setHasUnsavedChanges(true)
   }
 
-  // Track changes in form fields
+  // ✅ Track changes in form fields (but only after mount and data ready)
   useEffect(() => {
-    // QA Fix: Removed console.log for production performance
+    if (!didMount.current) { 
+      didMount.current = true
+      return // Skip first mount
+    }
+    if (!dataReady) return // Skip if data not ready
+    
     setHasUnsavedChanges(true)
-  }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione, formData.fonte])
+  }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione, formData.fonte, dataReady])
 
   const canSave = formData.toponimo.trim() && formData.descrizione.trim() && formData.ubicazione_confidenza_id
 
@@ -586,6 +615,7 @@ export function PoiForm({
               id="toponimo"
               value={formData.toponimo}
               onChange={(e) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ ...prev, toponimo: e.target.value }))
                 setHasUnsavedChanges(true)
               }}
@@ -600,6 +630,7 @@ export function PoiForm({
               id="descrizione"
               value={formData.descrizione}
               onChange={(e) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ ...prev, descrizione: e.target.value }))
                 setHasUnsavedChanges(true)
               }}
@@ -614,6 +645,7 @@ export function PoiForm({
             <Select
               value={formData.ubicazione_confidenza_id}
               onValueChange={(value) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ ...prev, ubicazione_confidenza_id: value }))
                 setHasUnsavedChanges(true)
               }}
@@ -644,6 +676,7 @@ export function PoiForm({
             <Select
               value={formData.posizione_id || ''}
               onValueChange={(value) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ ...prev, posizione_id: value }))
                 setHasUnsavedChanges(true)
               }}
@@ -667,6 +700,7 @@ export function PoiForm({
               id="indirizzo"
               value={formData.indirizzo_libero || ''}
               onChange={(e) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ ...prev, indirizzo_libero: e.target.value }))
                 setHasUnsavedChanges(true)
               }}
@@ -706,6 +740,7 @@ export function PoiForm({
                       id="fonte-testuale"
                       value={formData.fonte || ''}
                       onChange={(e) => {
+                        if (!dataReady) return // ✅ Prevent changes before data ready
                         setFormData(prev => ({ ...prev, fonte: e.target.value }))
                         setHasUnsavedChanges(true)
                       }}
@@ -765,6 +800,7 @@ export function PoiForm({
             <Switch
               checked={formData.stato_validazione === 'published'}
               onCheckedChange={(checked) => {
+                if (!dataReady) return // ✅ Prevent changes before data ready
                 setFormData(prev => ({ 
                   ...prev, 
                   stato_validazione: checked ? 'published' : 'draft' 
