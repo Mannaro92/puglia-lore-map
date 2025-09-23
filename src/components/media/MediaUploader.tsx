@@ -13,6 +13,7 @@ interface MediaUploaderProps {
 }
 
 const VIDEO_QUOTA_BYTES = 104857600 // 100MB
+const IMAGE_QUOTA_BYTES = 52428800 // 50MB  
 const MAX_FILE_SIZE = 104857600 // 100MB per single file
 
 interface PendingFile {
@@ -30,6 +31,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [media, setMedia] = useState<MediaItem[]>([])
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [videoUsedBytes, setVideoUsedBytes] = useState(0)
+  const [imageUsedBytes, setImageUsedBytes] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const loadMedia = useCallback(async () => {
@@ -52,8 +54,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         .filter(m => m.tipo === 'video')
         .reduce((sum, m) => sum + (m.size_bytes || 0), 0)
       
-      console.debug('[MediaUploader] Video quota calculation:', { videoBytes, totalItems: list.length })
+      // Update image quota usage  
+      const imageBytes = list
+        .filter(m => m.tipo === 'image')
+        .reduce((sum, m) => sum + (m.size_bytes || 0), 0)
+      
+      console.debug('[MediaUploader] Quota calculation:', { videoBytes, imageBytes, totalItems: list.length })
       setVideoUsedBytes(videoBytes)
+      setImageUsedBytes(imageBytes)
     } catch (e: any) {
       console.error('[MediaUploader] Error loading media:', e)
       toast({ title: 'Errore caricamento media', description: e?.message || String(e), variant: 'destructive' })
@@ -74,10 +82,25 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         .filter(pf => pf.tipo === 'video')
         .reduce((sum, pf) => sum + pf.file.size, 0)
       
+      // Check image quota before upload
+      const pendingImageSize = pendingFiles
+        .filter(pf => pf.tipo === 'image')
+        .reduce((sum, pf) => sum + pf.file.size, 0)
+      
       if (videoUsedBytes + pendingVideoSize > VIDEO_QUOTA_BYTES) {
         const availableMB = ((VIDEO_QUOTA_BYTES - videoUsedBytes) / 1048576).toFixed(1)
         toast({ 
           title: "Quota video superata", 
+          description: `Disponibili: ${availableMB} MB`, 
+          variant: "destructive" 
+        })
+        return
+      }
+      
+      if (imageUsedBytes + pendingImageSize > IMAGE_QUOTA_BYTES) {
+        const availableMB = ((IMAGE_QUOTA_BYTES - imageUsedBytes) / 1048576).toFixed(1)
+        toast({ 
+          title: "Quota immagini superata", 
           description: `Disponibili: ${availableMB} MB`, 
           variant: "destructive" 
         })
@@ -228,22 +251,46 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       .filter(vf => vf.tipo === 'video')
       .reduce((sum, vf) => sum + vf.file.size, 0)
     
+    // Check image quota
+    const newImageSize = validFiles
+      .filter(vf => vf.tipo === 'image')
+      .reduce((sum, vf) => sum + vf.file.size, 0)
+    
     const currentPendingVideoSize = pendingFiles
       .filter(pf => pf.tipo === 'video')
       .reduce((sum, pf) => sum + pf.file.size, 0)
     
-    console.debug('[MediaUploader] Video quota check:', {
+    const currentPendingImageSize = pendingFiles
+      .filter(pf => pf.tipo === 'image')  
+      .reduce((sum, pf) => sum + pf.file.size, 0)
+    
+    console.debug('[MediaUploader] Quota check:', {
       videoUsedBytes,
+      imageUsedBytes,
       currentPendingVideoSize,
+      currentPendingImageSize,
       newVideoSize,
-      total: videoUsedBytes + currentPendingVideoSize + newVideoSize,
-      limit: VIDEO_QUOTA_BYTES
+      newImageSize,
+      totalVideo: videoUsedBytes + currentPendingVideoSize + newVideoSize,
+      totalImage: imageUsedBytes + currentPendingImageSize + newImageSize,
+      videoLimit: VIDEO_QUOTA_BYTES,
+      imageLimit: IMAGE_QUOTA_BYTES
     })
     
     if (videoUsedBytes + currentPendingVideoSize + newVideoSize > VIDEO_QUOTA_BYTES) {
       const availableMB = ((VIDEO_QUOTA_BYTES - videoUsedBytes - currentPendingVideoSize) / 1048576).toFixed(1)
       toast({ 
         title: "Quota video superata", 
+        description: `Disponibili: ${availableMB} MB`, 
+        variant: "destructive" 
+      })
+      return
+    }
+    
+    if (imageUsedBytes + currentPendingImageSize + newImageSize > IMAGE_QUOTA_BYTES) {
+      const availableMB = ((IMAGE_QUOTA_BYTES - imageUsedBytes - currentPendingImageSize) / 1048576).toFixed(1)
+      toast({ 
+        title: "Quota immagini superata", 
         description: `Disponibili: ${availableMB} MB`, 
         variant: "destructive" 
       })
@@ -385,6 +432,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             Video: {(videoUsedBytes / 1048576).toFixed(1)} MB / 100 MB utilizzati
             {pendingFiles.filter(pf => pf.tipo === 'video').length > 0 && 
               ` (+${(pendingFiles.filter(pf => pf.tipo === 'video').reduce((sum, pf) => sum + pf.file.size, 0) / 1048576).toFixed(1)} MB in coda)`
+            }
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Immagini: {(imageUsedBytes / 1048576).toFixed(1)} MB / 50 MB utilizzati
+            {pendingFiles.filter(pf => pf.tipo === 'image').length > 0 && 
+              ` (+${(pendingFiles.filter(pf => pf.tipo === 'image').reduce((sum, pf) => sum + pf.file.size, 0) / 1048576).toFixed(1)} MB in coda)`
             }
           </p>
           <input
