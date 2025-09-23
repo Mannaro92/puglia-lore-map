@@ -98,13 +98,13 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "shortbread",
     name: "Shortbread",
-    description: "Stile vettoriale minimalista",
+    description: "CARTO Positron (chiaro)",
     type: "basemap",
     format: "raster",
-    url: "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
-    subdomains: ["a", "b", "c"],
-    maxzoom: 18,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c", "d"],
+    maxzoom: 20,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
     enabled: true
   },
   {
