@@ -28,9 +28,30 @@ function replaceSubdomain(url: string, subdomains?: string[]): string {
  */
 function getFirstSymbolLayerId(map: Map): string | undefined {
   const layers = map.getStyle().layers || [];
-  // Inserisce prima dei symbol ma dopo i circle dei POI
+  // Inserisce prima dei symbol (etichette)
   const symbolLayer = layers.find(l => l.type === "symbol");
   return symbolLayer?.id;
+}
+
+// Trova il primo layer circle (tipicamente i POI) per inserire overlay sotto i POI
+function getFirstCircleLayerId(map: Map): string | undefined {
+  const layers = map.getStyle().layers || [];
+  const circleLayer = layers.find(l => l.type === "circle");
+  return circleLayer?.id;
+}
+
+// Esegue cb quando lo style è pronto (caricato)
+function ensureStyleReady(map: Map, cb: () => void) {
+  // map.isStyleLoaded() è disponibile in MapLibre 2+
+  if ((map as any).isStyleLoaded && (map as any).isStyleLoaded()) {
+    cb();
+    return;
+  }
+  const handler = () => {
+    map.off('styledata', handler);
+    cb();
+  };
+  map.on('styledata', handler);
 }
 
 /**
@@ -39,6 +60,18 @@ function getFirstSymbolLayerId(map: Map): string | undefined {
 export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): boolean {
   const sourceId = `src-${provider.id}`;
   const layerId = `lyr-${provider.id}`;
+
+  // Se lo style non è pronto, ritenta quando è carico
+  if (!(map as any).isStyleLoaded || !(map as any).isStyleLoaded()) {
+    ensureStyleReady(map, () => {
+      try {
+        ensureProvider(map, provider, opacity);
+      } catch (e) {
+        console.error(`Errore (deferred) aggiungendo provider ${provider.id}:`, e);
+      }
+    });
+    return true; // pianificato
+  }
 
   // Verifica se il provider richiede una chiave API
   if (provider.requiresKey && (!provider.keyEnv || !checkEnvironmentKey(provider.keyEnv))) {
@@ -50,7 +83,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
     if (!map.getSource(sourceId)) {
       if (provider.format === "raster") {
         const tilesUrl = replaceSubdomain(provider.url, provider.subdomains);
-        
+
         map.addSource(sourceId, {
           type: "raster",
           tiles: [tilesUrl],
@@ -60,10 +93,12 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           attribution: provider.attribution
         });
 
-        // Per basemap: inserisci come primo layer (background)  
-        // Per overlay: inserisci prima dei symbol ma dopo i POI
-        const beforeId = provider.type === "basemap" ? getFirstLayerId(map) : getFirstSymbolLayerId(map);
-        
+        // Per basemap: inserisci come primo layer (background)
+        // Per overlay: inserisci SOTTO i POI (circle) ma sotto anche le etichette
+        const beforeId = provider.type === "basemap"
+          ? getFirstLayerId(map)
+          : (getFirstCircleLayerId(map) ?? getFirstSymbolLayerId(map));
+
         map.addLayer({
           id: layerId,
           type: "raster",
@@ -71,15 +106,14 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           paint: {
             "raster-opacity": opacity,
             "raster-resampling": "linear",
-            "raster-fade-duration": 100  // Transizioni morbide
+            "raster-fade-duration": 100 // Transizioni morbide
           }
         }, beforeId);
-        
+
         console.log(`✅ Layer ${provider.id} aggiunto (${provider.type})`)
-        
+
       } else if (provider.format === "vector") {
         // Per vector style (MapTiler OMT), usa setStyle secondario
-        // Questa implementazione è più complessa e dipende dal caso d'uso
         console.log(`Vector style ${provider.id} richiede implementazione setStyle`);
         return false;
       }
@@ -89,7 +123,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
         map.setPaintProperty(layerId, "raster-opacity", opacity);
       }
     }
-    
+
     return true;
   } catch (error) {
     console.error(`Errore aggiungendo provider ${provider.id}:`, error);
