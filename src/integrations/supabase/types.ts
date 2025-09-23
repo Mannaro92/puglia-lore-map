@@ -1797,8 +1797,37 @@ export type Database = {
         Returns: Json
       }
       rpc_upsert_site: {
-        Args: { site_data: Json }
-        Returns: Json
+        Args:
+          | {
+              p_clear_geom: boolean
+              p_payload: Json
+              p_publish: boolean
+              p_site_id: string
+              p_user: string
+            }
+          | { site_data: Json }
+        Returns: {
+          bbox: unknown | null
+          centroid: unknown | null
+          comune_id: string | null
+          created_at: string | null
+          created_by: string | null
+          descrizione: string | null
+          fonte: string | null
+          geom_area: unknown | null
+          geom_point: unknown | null
+          id: string
+          indirizzo_libero: string | null
+          licenza: string | null
+          posizione_id: string | null
+          provincia_id: string | null
+          stato_validazione:
+            | Database["public"]["Enums"]["stato_validazione"]
+            | null
+          toponimo: string
+          ubicazione_confidenza_id: string | null
+          updated_at: string | null
+        }
       }
       set_limit: {
         Args: { "": number }

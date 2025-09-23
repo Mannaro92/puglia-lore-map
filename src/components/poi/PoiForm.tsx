@@ -274,13 +274,19 @@ export function PoiForm({
         return arr.filter(id => id && typeof id === 'string' && isValidUuid(id.trim()))
       }
 
-      // Determine effective coordinates: prefer prop, fallback to inputs
+      // Build numeric coordinates - prefer prop coordinates, fallback to manual inputs
       const latParsed = parseCoordinate(latStr)
       const lonParsed = parseCoordinate(lonStr)
       const effectiveCoords = coordinates ?? ((latParsed != null && lonParsed != null) ? { lat: latParsed, lon: lonParsed } : null)
 
+      // Clean numeric lat/lon for payload - ensure they are numbers, not strings
+      const lat = effectiveCoords?.lat !== undefined && effectiveCoords?.lat !== null 
+        ? Number(effectiveCoords.lat) : undefined;
+      const lon = effectiveCoords?.lon !== undefined && effectiveCoords?.lon !== null 
+        ? Number(effectiveCoords.lon) : undefined;
+
       // If publishing, require coordinates
-      if (formData.stato_validazione === 'published' && !effectiveCoords) {
+      if (formData.stato_validazione === 'published' && (!lat || !lon)) {
         toast({
           title: 'Coordinate mancanti',
           description: 'Per pubblicare è necessario impostare le coordinate (clic sulla mappa o inserisci lat/lon).',
@@ -294,7 +300,8 @@ export function PoiForm({
         ...formData,
         ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
         posizione_id: (formData.posizione_id && isValidUuid(formData.posizione_id)) ? formData.posizione_id : null,
-        coordinates: effectiveCoords,
+        // Include lat/lon as separate numeric fields instead of coordinates object
+        ...(lat !== undefined && lon !== undefined ? { lat, lon } : {}),
         // Clean all UUID arrays once
         cronologia_ids: cleanUuidArray(formData.cronologia_ids),
         definizione_ids: cleanUuidArray(formData.definizione_ids),
@@ -319,11 +326,37 @@ export function PoiForm({
       console.log('💾 stato_validazione in formData:', formData.stato_validazione)
       console.log('💾 stato_validazione in payload:', payload.stato_validazione)
       
-      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { site_data: payload })
-      if (error) throw error
+      console.log('📤 UPsert payload →', payload, typeof payload.lat, typeof payload.lon);
+
+      const { data: savedPoi, error } = await supabase
+        .rpc('rpc_upsert_site', {
+          p_site_id: siteId || null,
+          p_payload: payload,
+          p_publish: formData.stato_validazione === 'published',
+          p_clear_geom: false,
+          p_user: null // Let the RPC function use auth.uid()
+        });
+
+      console.log('✅ RPC result →', savedPoi);
+
+      if (error) {
+        console.error('❌ Errore RPC:', error);
+        throw error;
+      }
+
+      if (!savedPoi || !savedPoi.id) {
+        throw new Error('La risposta del server non contiene un ID valido');
+      }
+
+      console.log(`🔎 DB stato_validazione: ${savedPoi.stato_validazione}`);
+      
+      // Check if coordinates were saved properly
+      if (payload.lat && payload.lon) {
+        console.log(`🗺️ Coordinate salvate: lat=${payload.lat}, lon=${payload.lon}`);
+      }
 
       // Ensure relation tables mirror current selections (draft or published)
-      const savedId = (typeof newSiteId === 'string' ? newSiteId : (newSiteId as any)?.id) || formData.id!
+      const savedId = savedPoi.id
       try {
         const pairs: Array<[string, string, string[]]> = [
           ['site_cronologia', 'cronologia_id', payload.cronologia_ids || payload.cronologie || []],
@@ -382,11 +415,11 @@ export function PoiForm({
       }
       
       // If we have temp files, move them to the site folder
-      if (!formData.id && tempFiles.length > 0 && newSiteId) {
+      if (!formData.id && tempFiles.length > 0 && savedId) {
         try {
           const { data: moveResult, error: moveError } = await supabase.functions.invoke('move-temp-to-site', {
             body: {
-              site_id: newSiteId,
+              site_id: savedId,
               session_id: sessionId,
               files: tempFiles
             }
@@ -408,7 +441,7 @@ export function PoiForm({
       })
       
       setHasUnsavedChanges(false)
-      onSave?.((newSiteId as any)?.id || formData.id!)
+      onSave?.(savedId || formData.id!)
       
     } catch (error: any) {
       console.error('Save error:', error)
