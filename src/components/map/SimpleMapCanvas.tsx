@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { supabase } from '@/integrations/supabase/client'
+import { MapProvider } from '@/lib/MapContext'
+import { configureMapPerformance } from '@/lib/map/add-tiles'
 
 interface SimpleMapCanvasProps {
   onFeatureClick?: (feature: any) => void
@@ -9,6 +11,7 @@ interface SimpleMapCanvasProps {
   mapCenter?: [number, number] | null
   initialCenter?: [number, number]
   initialZoom?: number
+  children?: React.ReactNode
 }
 
 export function SimpleMapCanvas({ 
@@ -16,7 +19,8 @@ export function SimpleMapCanvas({
   focusSiteId = null,
   mapCenter = null,
   initialCenter = [16.6, 41.1],
-  initialZoom = 8
+  initialZoom = 8,
+  children
 }: SimpleMapCanvasProps) {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -205,10 +209,15 @@ export function SimpleMapCanvas({
   }, [mapCenter, mapLoaded])
 
   return (
-    <div 
-      ref={containerRef} 
-      className="absolute inset-0 bg-gray-100"
-      style={{ minHeight: '100%' }}
-    />
+    <MapProvider map={mapRef.current}>
+      <div className="relative h-full w-full">
+        <div 
+          ref={containerRef} 
+          className="absolute inset-0 bg-gray-100"
+          style={{ minHeight: '100%' }}
+        />
+        {children}
+      </div>
+    </MapProvider>
   )
 }

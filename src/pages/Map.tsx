@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
 import { LayerPanel } from '@/components/map/LayerPanel'
+import { LayerControl } from '@/components/map/LayerControl'
 import { SearchBox } from '@/components/map/SearchBox'
 import { LoginModal } from '@/components/auth/LoginModal'
 import { FeatureInfoPanel } from '@/components/panels/FeatureInfoPanel'
 import { Button } from '@/components/ui/button'
-import { LogIn, Edit3, LogOut } from 'lucide-react'
+import { LogIn, Edit3, LogOut, Layers } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import type { User } from '@supabase/supabase-js'
@@ -25,6 +26,11 @@ export default function MapPage() {
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
   const [focusSiteId, setFocusSiteId] = useState<string | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
+  const [showLayerControl, setShowLayerControl] = useState(() => {
+    // Verifica se c'è una configurazione layer nell'URL
+    const params = new URLSearchParams(window.location.search);
+    return !!(params.get('basemap') || params.get('overlays'));
+  })
   const urlFocusSiteId = searchParams.get('focus')
 
   // Check authentication status
@@ -109,6 +115,15 @@ export default function MapPage() {
           <h1 className="text-xl font-bold">MEMOIR GIS</h1>
           
           <div className="flex items-center gap-2">
+            <Button 
+              variant={showLayerControl ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setShowLayerControl(!showLayerControl)}
+            >
+              <Layers className="w-4 h-4 mr-2" />
+              Layer
+            </Button>
+            
             {user ? (
               <>
                 <span className="text-sm text-muted-foreground hidden sm:inline">
@@ -140,10 +155,21 @@ export default function MapPage() {
           mapCenter={mapCenter}
           initialCenter={[16.6, 41.1]}
           initialZoom={8}
-        />
+        >
+          {/* Layer Control Panel */}
+          {showLayerControl && (
+            <div className="absolute top-20 left-4 z-20">
+              <LayerControl 
+                className="memoir-panel memoir-scroll max-h-[70vh] overflow-y-auto"
+              />
+            </div>
+          )}
+        </SimpleMapCanvas>
         
         {/* Search Box */}
-        <div className="absolute top-20 left-4 w-80 z-10">
+        <div className={`absolute top-20 w-80 z-10 transition-all duration-200 ${
+          showLayerControl ? 'left-[21rem]' : 'left-4'
+        }`}>
           <SearchBox
             filters={{}}
             onResultSelect={handleSearchSelect}
