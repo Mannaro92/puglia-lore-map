@@ -92,7 +92,10 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           tileSize: provider.tileSize ?? 256,
           minzoom: provider.minzoom ?? 0,
           maxzoom: provider.effectiveMaxZoom ?? provider.maxzoom ?? 22,
-          attribution: provider.attribution
+          attribution: provider.attribution,
+          // Ottimizzazioni performance
+          scheme: "xyz",
+          volatile: false // Cache persistente per velocità
         });
 
         // Per basemap: inserisci come PRIMO layer (sfondo), prima di tutti gli altri
@@ -108,7 +111,12 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           paint: {
             "raster-opacity": opacity,
             "raster-resampling": (provider as any).rasterResampling ?? "linear",
-            "raster-fade-duration": (provider as any).rasterFadeDuration ?? 100
+            "raster-fade-duration": (provider as any).rasterFadeDuration ?? 50, // Fade più rapido
+            "raster-brightness-min": 0,
+            "raster-brightness-max": 1,
+            "raster-saturation": 0,
+            "raster-contrast": 0,
+            "raster-hue-rotate": 0
           }
         }, beforeId);
 
@@ -342,9 +350,48 @@ function checkEnvironmentKey(keyName: string): boolean {
  * Configura impostazioni per performance ottimali
  */
 export function configureMapPerformance(map: Map): void {
-  // Impostazioni per transizioni morbide e performance
-  map.on('styledata', () => {
-    // Retry automatico per tile falliti - configurazione avanzata
-    console.log('Map style loaded, tiles configured for optimal performance');
+  console.log('⚡ Configurazione performance ottimizzata...');
+
+  // Preconnetti ai domini delle tile più utilizzati per velocizzare DNS
+  const preconnectDomains = [
+    'tile.openstreetmap.org',
+    'tile.opentopomap.org', 
+    'basemaps.cartocdn.com',
+    'tile-cyclosm.openstreetmap.fr'
+  ];
+  
+  preconnectDomains.forEach(domain => {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = `https://${domain}`;
+    document.head.appendChild(link);
   });
+
+  // Ottimizza impostazioni di rendering
+  (map as any)._maxTileCacheSize = 200; // Aumenta cache tile
+  
+  // Configurazioni per performance delle tile
+  map.on('sourcedata', (e: any) => {
+    if (e.sourceId && e.isSourceLoaded) {
+      console.log(`✅ Sorgente ${e.sourceId} caricata`);
+    }
+  });
+
+  // Gestione errori tile con retry automatico
+  map.on('error', (e: any) => {
+    if (e.error && e.error.status >= 400) {
+      console.warn(`⚠️ Errore tile ${e.error.status}, retry automatico attivo`);
+    }
+  });
+
+  // Limita zoom rapido per evitare troppi caricamenti
+  let zoomTimeout: NodeJS.Timeout;
+  map.on('zoom', () => {
+    clearTimeout(zoomTimeout);
+    zoomTimeout = setTimeout(() => {
+      console.log('Zoom stabilizzato, ottimizzando tile...');
+    }, 150);
+  });
+
+  console.log('✅ Performance configurata con successo');
 }

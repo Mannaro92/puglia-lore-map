@@ -149,7 +149,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
     subdomains: ["a", "b", "c"],
     maxzoom: 20,
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © OSM France',
-    enabled: true
+    enabled: false // Disabilitato per migliorare performance
   },
   {
     id: "osm-gps",

@@ -102,24 +102,17 @@ export function SimpleMapCanvas({
       console.log('✅ SimpleMapCanvas loaded successfully')
       setMapLoaded(true)
 
-      // Performance tweaks and default layers
+      // Performance tweaks and default basemap only
       try {
         configureMapPerformance(map)
         const init = getInitialLayerState(DEFAULT_BASEMAP)
-        // Basemap
+        // Solo basemap, niente overlay per ottimizzare velocità
         if (init.basemap) {
           const ok = setBasemap(map as any, init.basemap)
           console.log('Basemap init', init.basemap, ok)
         }
-        // Overlays
-        if (init.overlays?.length) {
-          init.overlays.forEach((id) => {
-            const op = init.opacities?.[id] ?? 0.7
-            toggleOverlay(map as any, id, true, op)
-          })
-        }
       } catch (e) {
-        console.error('Errore init basemap/overlays:', e)
+        console.error('Errore init basemap:', e)
       }
       
       // Load POI data
