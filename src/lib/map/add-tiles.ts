@@ -176,8 +176,6 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           }
         }, beforeId);
 
-        console.log(`✅ Layer ${provider.id} aggiunto (${provider.type})`)
-
       } else if (provider.format === "vector") {
         // Per vector style (MapTiler OMT), usa setStyle secondario
         console.log(`Vector style ${provider.id} richiede implementazione setStyle`);
@@ -308,7 +306,6 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
 
   // Attendi che lo style sia pronto prima di procedere
   if (!isStyleReady(map)) {
-    console.log('Style non pronto, attendo caricamento...');
     ensureStyleReady(map, () => {
       setBasemap(map, newBasemapId, opacity);
     });
@@ -327,7 +324,6 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
     return setBasemap(map, DEFAULT_BASEMAP, opacity);
   }
   
-  console.log(`✅ Basemap ${newBasemapId} ${success ? 'caricata' : 'fallita'}`);
   // Assicura che i POI restino sopra dopo il cambio basemap
   setTimeout(() => ensurePoiOnTop(map), 0);
   return success;
@@ -448,8 +444,6 @@ function checkEnvironmentKey(keyName: string): boolean {
  * Configura impostazioni per performance ottimali
  */
 export function configureMapPerformance(map: Map): void {
-  console.log('⚡ Configurazione performance ottimizzata...');
-
   // Preconnetti ai domini delle tile più utilizzati per velocizzare DNS
   const preconnectDomains = [
     'tile.openstreetmap.org',
@@ -470,9 +464,7 @@ export function configureMapPerformance(map: Map): void {
   
   // Configurazioni per performance delle tile
   map.on('sourcedata', (e: any) => {
-    if (e.sourceId && e.isSourceLoaded) {
-      console.log(`✅ Sorgente ${e.sourceId} caricata`);
-    }
+    // Source loading handled silently
   });
 
   // Gestione errori tile con retry automatico
@@ -487,9 +479,7 @@ export function configureMapPerformance(map: Map): void {
   map.on('zoom', () => {
     clearTimeout(zoomTimeout);
     zoomTimeout = setTimeout(() => {
-      console.log('Zoom stabilizzato, ottimizzando tile...');
+      // Zoom optimization handled silently
     }, 150);
   });
-
-  console.log('✅ Performance configurata con successo');
 }

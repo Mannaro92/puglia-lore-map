@@ -115,7 +115,6 @@ export function PoiMapCanvas({
     mapRef.current = map
 
     map.on('load', () => {
-      console.log('✅ PoiMapCanvas loaded successfully')
       setMapLoaded(true)
       
       // Load POI data

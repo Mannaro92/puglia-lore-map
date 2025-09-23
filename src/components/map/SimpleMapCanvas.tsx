@@ -31,8 +31,6 @@ export function SimpleMapCanvas({
   useEffect(() => {
     if (!containerRef.current) return
     
-    console.log('🗺️ SimpleMapCanvas initializing...')
-    
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: {
@@ -99,7 +97,6 @@ export function SimpleMapCanvas({
     mapRef.current = map
 
     map.on('load', () => {
-      console.log('✅ SimpleMapCanvas loaded successfully')
       setMapLoaded(true)
 
       // Performance tweaks and default basemap only
@@ -109,7 +106,6 @@ export function SimpleMapCanvas({
         // Solo basemap, niente overlay per ottimizzare velocità
         if (init.basemap) {
           const ok = setBasemap(map as any, init.basemap)
-          console.log('Basemap init', init.basemap, ok)
         }
       } catch (e) {
         console.error('Errore init basemap:', e)
@@ -129,7 +125,7 @@ export function SimpleMapCanvas({
             map.moveLayer('sites-labels')
           }
         } catch (e) {
-          console.warn('Could not reorder POI layers:', e)
+          // Layer reordering failed silently
         }
       }, 500)
       
@@ -153,7 +149,7 @@ export function SimpleMapCanvas({
     })
 
     map.on('error', (e) => {
-      console.error('❌ SimpleMapCanvas error:', e)
+      // Map errors handled silently in production
     })
 
     return () => {
@@ -164,12 +160,10 @@ export function SimpleMapCanvas({
   // Load POI data using RPC function
   const loadPOIData = async () => {
     if (!mapRef.current) {
-      console.warn('Mappa non disponibile per caricamento POI');
       return;
     }
     
     try {
-      console.log('📡 Loading POI data...');
       const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
         bbox_geom: null,
         include_drafts: false // Only published POIs for public view
@@ -180,13 +174,9 @@ export function SimpleMapCanvas({
         return;
       }
       
-      console.log('✅ Loaded POI data:', geojson);
-      
       const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource;
       if (source && geojson && typeof geojson === 'object') {
         source.setData(geojson as any);
-      } else {
-        console.warn('Source "sites" non trovato o dati POI non validi');
       }
       
     } catch (error) {
@@ -212,7 +202,6 @@ export function SimpleMapCanvas({
         }
         
         if (!data?.geom_point) {
-          console.warn(`Sito ${focusSiteId} non trovato o senza coordinate`);
           return;
         }
         

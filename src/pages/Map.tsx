@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
-import { LayerPanel } from '@/components/map/LayerPanel'
 import { LayerControl } from '@/components/map/LayerControl'
 import { SearchBox } from '@/components/map/SearchBox'
 import { LoginModal } from '@/components/auth/LoginModal'
@@ -13,7 +12,6 @@ import { useToast } from '@/hooks/use-toast'
 import type { User } from '@supabase/supabase-js'
 
 export default function MapPage() {
-  console.log('🗺️ MapPage component mounting')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
@@ -57,7 +55,6 @@ export default function MapPage() {
 
   const handleFeatureClick = (feature: any) => {
     setSelectedFeature(feature)
-    console.log('Feature clicked:', feature.properties)
   }
 
   const handleEditMode = () => {
@@ -80,8 +77,6 @@ export default function MapPage() {
   }, [urlFocusSiteId])
 
   const handleSearchSelect = (result: any) => {
-    console.log('Search result selected:', result)
-    
     if (result.type === 'site') {
       // POI result - focus on the site
       setFocusSiteId(result.id)

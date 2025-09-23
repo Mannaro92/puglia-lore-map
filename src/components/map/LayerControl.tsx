@@ -59,20 +59,16 @@ export const LayerControl: React.FC<LayerControlProps> = ({
 
     // Applica stato iniziale alla mappa
     const initMap = () => {
-      console.log('🎨 Inizializzando layer control...', layerState);
-      
       try {
         // Imposta basemap iniziale
         if (layerState.basemap) {
           const success = setBasemap(map, layerState.basemap);
-          console.log(`Basemap ${layerState.basemap} ${success ? 'OK' : 'FAILED'}`);
         }
         
         // Attiva overlay iniziali
         layerState.overlays.forEach(overlayId => {
           const opacity = layerState.opacities[overlayId] || 0.7;
           const success = toggleOverlay(map, overlayId, true, opacity);
-          console.log(`Overlay ${overlayId} ${success ? 'OK' : 'FAILED'}`);
         });
         
         setIsInitialized(true);
@@ -112,14 +108,12 @@ export const LayerControl: React.FC<LayerControlProps> = ({
   // Handler per cambio basemap
   const handleBasemapChange = useCallback((basemapId: string) => {
     if (!map) {
-      console.warn('Mappa non disponibile per cambio basemap');
       return;
     }
     
     // Fallback se basemap non esiste più (es. tracestrack-topo rimosso)
     const provider = getBasemapProviders().find(p => p.id === basemapId);
     if (!provider) {
-      console.warn(`Basemap ${basemapId} non trovato, fallback a default`);
       basemapId = DEFAULT_BASEMAP;
     }
     
