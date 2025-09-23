@@ -8,14 +8,12 @@ import { Image as ImageIcon, Upload, X } from 'lucide-react'
 
 interface MediaUploaderProps {
   siteId?: string
-  onTempFilesChange?: (files: string[]) => void
   onMediaListChange?: (list: MediaItem[]) => void
   onPendingFilesChange?: (uploadFn: ((siteId: string) => Promise<void>) | null) => void
 }
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({ 
   siteId, 
-  onTempFilesChange, 
   onMediaListChange, 
   onPendingFilesChange 
 }) => {
@@ -40,14 +38,13 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   }, [loadMedia])
 
   useEffect(() => {
-    onTempFilesChange?.(pendingFiles.map(f => f.name))
     // Provide upload function to parent
     if (pendingFiles.length > 0) {
       onPendingFilesChange?.(uploadPendingFiles)
     } else {
       onPendingFilesChange?.(null)
     }
-  }, [pendingFiles, onTempFilesChange, onPendingFilesChange])
+  }, [pendingFiles, onPendingFilesChange])
   
   // Function to upload pending files after POI creation
   const uploadPendingFiles = useCallback(async (newSiteId: string): Promise<void> => {
