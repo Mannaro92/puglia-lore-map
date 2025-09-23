@@ -45,6 +45,7 @@ interface FormData {
   contesti_ids: string[]
   indicatori_ids: string[]
   ambiti_ids: string[]
+  biblio_ids: string[]
 }
 
 interface MediaFile {
@@ -117,7 +118,8 @@ export function PoiForm({
     strutture_ids: [],
     contesti_ids: [],
     indicatori_ids: [],
-    ambiti_ids: []
+    ambiti_ids: [],
+    biblio_ids: []
   })
 
   // Load lookups and site data / reset when creating new
@@ -139,7 +141,8 @@ export function PoiForm({
         strutture_ids: [],
         contesti_ids: [],
         indicatori_ids: [],
-        ambiti_ids: []
+        ambiti_ids: [],
+        biblio_ids: []
       })
       onCoordinatesChange?.(null)
     }
@@ -178,7 +181,8 @@ export function PoiForm({
           site_strutture(struttura_id),
           site_contesti(contesto_id),
           site_indicatori(indicatore_id),
-          site_ambiti(ambito_id)
+          site_ambiti(ambito_id),
+          site_biblio(biblio_id)
         `)
         .eq('id', siteId)
         .maybeSingle(); // Use maybeSingle to avoid errors when no data found
@@ -215,7 +219,8 @@ export function PoiForm({
         strutture_ids: site.site_strutture?.map((r: any) => r.struttura_id) || [],
         contesti_ids: site.site_contesti?.map((r: any) => r.contesto_id) || [],
         indicatori_ids: site.site_indicatori?.map((r: any) => r.indicatore_id) || [],
-        ambiti_ids: site.site_ambiti?.map((r: any) => r.ambito_id) || []
+        ambiti_ids: site.site_ambiti?.map((r: any) => r.ambito_id) || [],
+        biblio_ids: site.site_biblio?.map((r: any) => r.biblio_id) || []
       })
       
     } catch (error: any) {
@@ -309,6 +314,7 @@ export function PoiForm({
         contesti_ids: cleanUuidArray(formData.contesti_ids),
         indicatori_ids: cleanUuidArray(formData.indicatori_ids),
         ambiti_ids: cleanUuidArray(formData.ambiti_ids),
+        biblio_ids: cleanUuidArray(formData.biblio_ids),
         // Server-side RPC (rpc_upsert_site) may expect plural aliases without _ids
         cronologie: cleanUuidArray(formData.cronologia_ids),
         definizioni: cleanUuidArray(formData.definizione_ids),
@@ -317,7 +323,8 @@ export function PoiForm({
         strutture: cleanUuidArray(formData.strutture_ids),
         contesti: cleanUuidArray(formData.contesti_ids),
         indicatori: cleanUuidArray(formData.indicatori_ids),
-        ambiti: cleanUuidArray(formData.ambiti_ids)
+        ambiti: cleanUuidArray(formData.ambiti_ids),
+        bibliografie: cleanUuidArray(formData.biblio_ids)
       }
       
       console.log('💾 Saving payload:', payload)
@@ -390,6 +397,7 @@ export function PoiForm({
           ['site_contesti', 'contesto_id', payload.contesti_ids || payload.contesti || []],
           ['site_indicatori', 'indicatore_id', payload.indicatori_ids || payload.indicatori || []],
           ['site_ambiti', 'ambito_id', payload.ambiti_ids || payload.ambiti || []],
+          ['site_biblio', 'biblio_id', payload.biblio_ids || payload.bibliografie || []],
         ]
         const syncLink = async (table: string, col: string, ids: string[]) => {
           const { data: existing, error: selErr } = await (supabase as any).from(table).select(col as any).eq('site_id', savedId)
@@ -666,7 +674,8 @@ export function PoiForm({
         strutture_ids: 'Strutture/Componenti',
         contesti_ids: 'Contesti Stratigrafici',
         indicatori_ids: 'Indicatori Cultuali',
-        ambiti_ids: 'Ambito Cultuale'
+        ambiti_ids: 'Ambito Cultuale',
+        biblio_ids: 'Bibliografia'
       }).map(([fieldKey, title]) => {
         const lookupKey = fieldKey.replace('_ids', '').replace('strutture', 'strutture_componenti').replace('contesti', 'contesti_stratigrafici').replace('indicatori', 'indicatori_cultuali').replace('ambiti', 'ambito_cultuale')
         const items = lookups[lookupKey] || []
