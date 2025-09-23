@@ -58,8 +58,10 @@ function ensureStyleReady(map: Map, cb: () => void) {
  * Aggiunge o aggiorna un provider nella mappa
  */
 export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): boolean {
-  const sourceId = `src-${provider.id}`;
-  const layerId = `lyr-${provider.id}`;
+  // Usa convenzioni di naming separate per basemap e overlay
+  const prefix = provider.type === "basemap" ? "base" : "ov";
+  const sourceId = `src-${prefix}-${provider.id}`;
+  const layerId = `lyr-${prefix}-${provider.id}`;
 
   // Se lo style non è pronto, ritenta quando è carico
   if (!(map as any).isStyleLoaded || !(map as any).isStyleLoaded()) {
@@ -93,11 +95,11 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           attribution: provider.attribution
         });
 
-        // Per basemap: inserisci come primo layer (background)
-        // Per overlay: inserisci SOTTO i POI (circle) ma sotto anche le etichette
+        // Per basemap: inserisci come PRIMO layer (sfondo), prima di tutti gli altri
+        // Per overlay: inserisci SOTTO i POI (circle) ma SOPRA le basemap
         const beforeId = provider.type === "basemap"
-          ? getFirstLayerId(map)
-          : (getFirstCircleLayerId(map) ?? getFirstSymbolLayerId(map));
+          ? getFirstLayerId(map)  // Basemap vanno sotto tutto
+          : (getFirstCircleLayerId(map) ?? getFirstSymbolLayerId(map));  // Overlay sopra basemap ma sotto POI/etichette
 
         map.addLayer({
           id: layerId,
@@ -142,16 +144,19 @@ function getFirstLayerId(map: Map): string | undefined {
 /**
  * Rimuove un provider dalla mappa
  */
-export function removeProvider(map: Map, providerId: string): void {
-  const sourceId = `src-${providerId}`;
-  const layerId = `lyr-${providerId}`;
+export function removeProvider(map: Map, providerId: string, type: "basemap" | "overlay" = "basemap"): void {
+  const prefix = type === "basemap" ? "base" : "ov";
+  const sourceId = `src-${prefix}-${providerId}`;
+  const layerId = `lyr-${prefix}-${providerId}`;
   
   try {
     if (map.getLayer(layerId)) {
       map.removeLayer(layerId);
+      console.log(`✅ Rimosso layer ${layerId}`);
     }
     if (map.getSource(sourceId)) {
       map.removeSource(sourceId);
+      console.log(`✅ Rimosso source ${sourceId}`);
     }
   } catch (error) {
     console.error(`Errore rimuovendo provider ${providerId}:`, error);
@@ -159,9 +164,44 @@ export function removeProvider(map: Map, providerId: string): void {
 }
 
 /**
- * Cambia basemap (rimuove il precedente e aggiunge il nuovo)
+ * Rimuove TUTTE le basemap attive (cleanup atomico)
+ */
+export function removeAllBasemaps(map: Map): void {
+  console.log('🧹 Rimozione di tutte le basemap attive...');
+  
+  // Rimuove tutti i layer che iniziano con "lyr-base-"
+  const layers = map.getStyle().layers || [];
+  layers.forEach(layer => {
+    if (layer.id.startsWith('lyr-base-')) {
+      try {
+        map.removeLayer(layer.id);
+        console.log(`✅ Rimosso layer basemap: ${layer.id}`);
+      } catch (e) {
+        console.warn(`Errore rimuovendo layer ${layer.id}:`, e);
+      }
+    }
+  });
+  
+  // Rimuove tutti i source che iniziano con "src-base-"
+  const sources = map.getStyle().sources || {};
+  Object.keys(sources).forEach(sourceId => {
+    if (sourceId.startsWith('src-base-')) {
+      try {
+        map.removeSource(sourceId);
+        console.log(`✅ Rimosso source basemap: ${sourceId}`);
+      } catch (e) {
+        console.warn(`Errore rimuovendo source ${sourceId}:`, e);
+      }
+    }
+  });
+}
+
+/**
+ * Cambia basemap (rimozione atomica + aggiunta esclusiva)
  */
 export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean {
+  console.log(`🗺️ Cambio basemap a: ${newBasemapId}`);
+  
   const newProvider = getProviderById(newBasemapId);
   if (!newProvider || newProvider.type !== "basemap") {
     console.error(`Basemap ${newBasemapId} non trovato o non valido`);
@@ -182,18 +222,10 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
     return false;
   }
 
-  // Rimuovi basemap precedenti
-  const currentBasemaps = TILE_PROVIDERS
-    .filter(p => p.type === "basemap")
-    .map(p => p.id);
-    
-  currentBasemaps.forEach(id => {
-    if (id !== newBasemapId) {
-      removeProvider(map, id);
-    }
-  });
+  // 1) RIMOZIONE ATOMICA: rimuovi TUTTE le basemap precedenti
+  removeAllBasemaps(map);
 
-  // Aggiungi nuovo basemap
+  // 2) AGGIUNTA ESCLUSIVA: aggiungi SOLO la nuova basemap
   const success = ensureProvider(map, newProvider, opacity);
   
   // Se fallisce e non è già il default, prova con il default
@@ -202,6 +234,7 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
     return setBasemap(map, DEFAULT_BASEMAP, opacity);
   }
   
+  console.log(`✅ Basemap ${newBasemapId} ${success ? 'caricata' : 'fallita'}`);
   return success;
 }
 
@@ -215,28 +248,39 @@ export function toggleOverlay(map: Map, overlayId: string, enable?: boolean, opa
     return false;
   }
 
-  const layerId = `lyr-${overlayId}`;
-  const isCurrentlyActive = !!map.getLayer(layerId);
-  
-  const shouldEnable = enable !== undefined ? enable : !isCurrentlyActive;
-  
-  if (shouldEnable && !isCurrentlyActive) {
+  const sourceId = `src-ov-${overlayId}`;
+  const layerId = `lyr-ov-${overlayId}`;
+  const hasLayer = !!map.getLayer(layerId);
+
+  // Determina azione: se enable non specificato, fai toggle
+  const shouldEnable = enable !== undefined ? enable : !hasLayer;
+
+  if (shouldEnable && !hasLayer) {
+    // Aggiungi overlay
     return ensureProvider(map, provider, opacity);
-  } else if (!shouldEnable && isCurrentlyActive) {
-    removeProvider(map, overlayId);
+  } else if (!shouldEnable && hasLayer) {
+    // Rimuovi overlay
+    removeProvider(map, overlayId, "overlay");
     return true;
   }
-  
-  return false;
+
+  return true; // Nessun cambiamento necessario
 }
 
 /**
  * Aggiorna opacità di un layer esistente
  */
 export function updateLayerOpacity(map: Map, providerId: string, opacity: number): void {
-  const layerId = `lyr-${providerId}`;
-  if (map.getLayer(layerId)) {
-    map.setPaintProperty(layerId, "raster-opacity", opacity);
+  // Prova entrambe le convenzioni di naming (basemap e overlay)
+  const basemapLayerId = `lyr-base-${providerId}`;
+  const overlayLayerId = `lyr-ov-${providerId}`;
+  
+  if (map.getLayer(basemapLayerId)) {
+    map.setPaintProperty(basemapLayerId, "raster-opacity", opacity);
+  } else if (map.getLayer(overlayLayerId)) {
+    map.setPaintProperty(overlayLayerId, "raster-opacity", opacity);
+  } else {
+    console.warn(`Layer ${providerId} non trovato per aggiornamento opacità`);
   }
 }
 
@@ -248,24 +292,35 @@ export function getActiveLayersState(map: Map): {
   overlays: string[];
   opacities: Record<string, number>;
 } {
+  const layers = map.getStyle().layers || [];
   const result = {
     basemap: null as string | null,
     overlays: [] as string[],
     opacities: {} as Record<string, number>
   };
 
-  TILE_PROVIDERS.forEach(provider => {
-    const layerId = `lyr-${provider.id}`;
-    const layer = map.getLayer(layerId);
-    
-    if (layer && layer.type === "raster") {
-      const opacity = (map.getPaintProperty(layerId, "raster-opacity") as number) || 1;
-      result.opacities[provider.id] = opacity;
+  layers.forEach((layer: any) => {
+    // Basemap: lyr-base-<id>
+    if (layer.id.startsWith('lyr-base-')) {
+      const providerId = layer.id.replace('lyr-base-', '');
+      const provider = getProviderById(providerId);
       
-      if (provider.type === "basemap") {
-        result.basemap = provider.id;
-      } else {
-        result.overlays.push(provider.id);
+      if (provider && provider.type === 'basemap') {
+        const opacity = layer.paint?.['raster-opacity'] ?? 1;
+        result.opacities[providerId] = opacity;
+        result.basemap = providerId;
+      }
+    }
+    
+    // Overlay: lyr-ov-<id>  
+    if (layer.id.startsWith('lyr-ov-')) {
+      const providerId = layer.id.replace('lyr-ov-', '');
+      const provider = getProviderById(providerId);
+      
+      if (provider && provider.type === 'overlay') {
+        const opacity = layer.paint?.['raster-opacity'] ?? 1;
+        result.opacities[providerId] = opacity;
+        result.overlays.push(providerId);
       }
     }
   });
