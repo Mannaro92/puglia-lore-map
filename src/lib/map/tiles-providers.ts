@@ -101,11 +101,10 @@ export const TILE_PROVIDERS: TileProvider[] = [
     description: "Stile vettoriale minimalista",
     type: "basemap",
     format: "raster",
-    // Placeholder - sostituire con shortbread dedicato se disponibile
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    url: "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c"],
-    maxzoom: 19,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Style: Shortbread',
+    maxzoom: 18,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     enabled: true
   },
   {
@@ -128,10 +127,11 @@ export const TILE_PROVIDERS: TileProvider[] = [
     description: "Note e commenti della comunità OpenStreetMap",
     type: "overlay",
     format: "raster",
-    url: "https://notes.openstreetmap.org/tiles/{z}/{x}/{y}.png",
-    maxzoom: 20,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> Notes',
-    enabled: true
+    url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c"],
+    maxzoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    enabled: false // Disabled for now as the original URL doesn't work
   },
   {
     id: "osm-data-overlay",
@@ -147,15 +147,15 @@ export const TILE_PROVIDERS: TileProvider[] = [
   },
   {
     id: "osm-gps",
-    name: "Tracciati GPS pubblici",
+    name: "Tracciati GPS pubblici",  
     description: "Tracce GPS condivise dalla comunità",
     type: "overlay",
     format: "raster",
-    url: "https://{s}.gps-tile.openstreetmap.org/lines/{z}/{x}/{y}.png",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c"],
-    maxzoom: 20,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> GPS traces',
-    enabled: true
+    maxzoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    enabled: false // Disabled for now as the GPS tiles URL doesn't work
   }
 ];
 

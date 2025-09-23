@@ -4,7 +4,14 @@
  */
 
 import maplibregl, { Map } from "maplibre-gl";
-import { TILE_PROVIDERS, TileProvider, getProviderById } from "./tiles-providers";
+import { 
+  getBasemapProviders, 
+  getOverlayProviders, 
+  TileProvider,
+  DEFAULT_BASEMAP,
+  getProviderById,
+  TILE_PROVIDERS
+} from '@/lib/map/tiles-providers';
 
 /**
  * Sostituisce placeholder subdomain nell'URL
@@ -124,6 +131,20 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
   const newProvider = getProviderById(newBasemapId);
   if (!newProvider || newProvider.type !== "basemap") {
     console.error(`Basemap ${newBasemapId} non trovato o non valido`);
+    // Fallback al basemap di default
+    if (newBasemapId !== DEFAULT_BASEMAP) {
+      console.log(`Fallback a ${DEFAULT_BASEMAP}`);
+      return setBasemap(map, DEFAULT_BASEMAP, opacity);
+    }
+    return false;
+  }
+
+  // Se il provider è disabilitato, usa il default
+  if (newProvider.enabled === false) {
+    console.warn(`Basemap ${newBasemapId} è disabilitato, fallback a ${DEFAULT_BASEMAP}`);
+    if (newBasemapId !== DEFAULT_BASEMAP) {
+      return setBasemap(map, DEFAULT_BASEMAP, opacity);
+    }
     return false;
   }
 
@@ -139,7 +160,15 @@ export function setBasemap(map: Map, newBasemapId: string, opacity = 1): boolean
   });
 
   // Aggiungi nuovo basemap
-  return ensureProvider(map, newProvider, opacity);
+  const success = ensureProvider(map, newProvider, opacity);
+  
+  // Se fallisce e non è già il default, prova con il default
+  if (!success && newBasemapId !== DEFAULT_BASEMAP) {
+    console.warn(`Fallimento caricamento ${newBasemapId}, usando ${DEFAULT_BASEMAP}`);
+    return setBasemap(map, DEFAULT_BASEMAP, opacity);
+  }
+  
+  return success;
 }
 
 /**
