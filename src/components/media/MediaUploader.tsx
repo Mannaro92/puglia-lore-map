@@ -30,6 +30,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       onMediaListChange?.(list)
     } catch (e: any) {
       console.error(e)
+      toast({ title: 'Errore caricamento media', description: e?.message || String(e), variant: 'destructive' })
     }
   }, [siteId, onMediaListChange])
 
@@ -116,6 +117,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       setUploading(true)
       try {
         const uploadedItems: Array<{storage_path: string; tipo: string; titolo: string; ordine: number}> = []
+        const localPreviews: MediaItem[] = []
         
         for (let i = 0; i < validFiles.length; i++) {
           const file = validFiles[i]
@@ -139,7 +141,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             titolo: compressed.name,
             ordine: media.length + i
           })
+          
+          localPreviews.push({
+            id: `tmp-${id}`,
+            site_id: siteId,
+            storage_path: storagePath,
+            tipo: 'image',
+            titolo: compressed.name,
+            licenza: '',
+            ordine: media.length + i,
+            created_at: new Date().toISOString(),
+          } as MediaItem)
         }
+        
+        // Optimistic UI update
+        setMedia(prev => [...prev, ...localPreviews])
         
         // Attach all media at once
         await supabase.rpc('rpc_attach_media', {
