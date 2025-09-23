@@ -18,11 +18,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    console.log('Login attempt:', { 
+      username: `'${username}'`, 
+      password: `'${password}'`,
+      usernameLength: username.length,
+      passwordLength: password.length,
+      usernameMatch: username === 'admin',
+      passwordMatch: password === 'admin'
+    })
+    
     if (username === 'admin' && password === 'admin') {
+      console.log('✅ Login successful')
       localStorage.setItem('auth', 'true')
       setIsAuthenticated(true)
       return true
     }
+    console.log('❌ Login failed')
     return false
   }
 
