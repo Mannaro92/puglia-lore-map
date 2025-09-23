@@ -21,6 +21,8 @@ import {
   Share,
   Info
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useMap } from '@/lib/MapContext';
 import { 
   getBasemapProviders, 
   getOverlayProviders, 
@@ -39,7 +41,6 @@ import {
   updateLayerOpacity,
   getActiveLayersState
 } from '@/lib/map/add-tiles';
-import { useMap } from '@/lib/MapContext';
 
 interface LayerControlProps {
   className?: string;
@@ -49,6 +50,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
   className = '' 
 }) => {
   const map = useMap();
+  const { toast } = useToast();
   const [layerState, setLayerState] = useState<LayerState>(() => 
     getInitialLayerState(DEFAULT_BASEMAP)
   );
@@ -62,24 +64,45 @@ export const LayerControl: React.FC<LayerControlProps> = ({
     const initMap = () => {
       console.log('🎨 Inizializzando layer control...', layerState);
       
-      // Imposta basemap iniziale
-      if (layerState.basemap) {
-        setBasemap(map, layerState.basemap);
+      try {
+        // Imposta basemap iniziale
+        if (layerState.basemap) {
+          const success = setBasemap(map, layerState.basemap);
+          console.log(`Basemap ${layerState.basemap} ${success ? 'OK' : 'FAILED'}`);
+        }
+        
+        // Attiva overlay iniziali
+        layerState.overlays.forEach(overlayId => {
+          const opacity = layerState.opacities[overlayId] || 0.7;
+          const success = toggleOverlay(map, overlayId, true, opacity);
+          console.log(`Overlay ${overlayId} ${success ? 'OK' : 'FAILED'}`);
+        });
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('❌ Errore inizializzando layer control:', error);
       }
-      
-      // Attiva overlay iniziali
-      layerState.overlays.forEach(overlayId => {
-        const opacity = layerState.opacities[overlayId] || 0.7;
-        toggleOverlay(map, overlayId, true, opacity);
-      });
-      
-      setIsInitialized(true);
     };
 
-    if (map.loaded()) {
+    // Assicurati che la mappa sia completamente caricata
+    if (map.loaded() && map.isStyleLoaded()) {
       initMap();
     } else {
-      map.once('load', initMap);
+      const handleLoad = () => {
+        if (map.loaded() && map.isStyleLoaded()) {
+          map.off('styledata', handleLoad);
+          map.off('load', handleLoad);
+          initMap();
+        }
+      };
+      
+      map.on('load', handleLoad);
+      map.on('styledata', handleLoad);
+      
+      return () => {
+        map.off('load', handleLoad);
+        map.off('styledata', handleLoad);
+      };
     }
   }, [map, layerState, isInitialized]);
 
@@ -303,7 +326,11 @@ export const LayerControl: React.FC<LayerControlProps> = ({
           onClick={() => {
             const shareUrl = generateShareUrl(layerState);
             navigator.clipboard.writeText(shareUrl);
-            // TODO: Mostra toast di conferma
+            toast({
+              title: "URL copiato!",
+              description: "L'URL con la configurazione layer è stato copiato negli appunti.",
+              duration: 3000
+            });
           }}
         >
           <Share className="h-4 w-4 mr-2" />

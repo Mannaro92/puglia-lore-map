@@ -17,11 +17,13 @@ function replaceSubdomain(url: string, subdomains?: string[]): string {
 
 /**
  * Trova il primo layer di tipo symbol (per inserire raster sotto le etichette)
+ * Ma sopra i POI circle
  */
 function getFirstSymbolLayerId(map: Map): string | undefined {
   const layers = map.getStyle().layers || [];
-  const symbol = layers.find(l => l.type === "symbol");
-  return symbol?.id;
+  // Inserisce prima dei symbol ma dopo i circle dei POI
+  const symbolLayer = layers.find(l => l.type === "symbol");
+  return symbolLayer?.id;
 }
 
 /**
@@ -51,8 +53,9 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           attribution: provider.attribution
         });
 
-        // Inserisci il layer prima del primo symbol layer (etichette)
-        const beforeId = getFirstSymbolLayerId(map);
+        // Per basemap: inserisci come primo layer (background)  
+        // Per overlay: inserisci prima dei symbol ma dopo i POI
+        const beforeId = provider.type === "basemap" ? getFirstLayerId(map) : getFirstSymbolLayerId(map);
         
         map.addLayer({
           id: layerId,
@@ -64,6 +67,8 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
             "raster-fade-duration": 100  // Transizioni morbide
           }
         }, beforeId);
+        
+        console.log(`✅ Layer ${provider.id} aggiunto (${provider.type})`)
         
       } else if (provider.format === "vector") {
         // Per vector style (MapTiler OMT), usa setStyle secondario
@@ -83,6 +88,14 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
     console.error(`Errore aggiungendo provider ${provider.id}:`, error);
     return false;
   }
+}
+
+/**
+ * Trova il primo layer esistente (per basemap)
+ */
+function getFirstLayerId(map: Map): string | undefined {
+  const layers = map.getStyle().layers || [];
+  return layers.length > 0 ? layers[0].id : undefined;
 }
 
 /**
