@@ -277,7 +277,7 @@ export function PoiForm({
       const payload = {
         ...formData,
         ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
-        posizione_id: formData.posizione_id || undefined,
+        posizione_id: (formData.posizione_id && isValidUuid(formData.posizione_id)) ? formData.posizione_id : null,
         coordinates: coordinates,
         // Clean all UUID arrays once
         cronologia_ids: cleanUuidArray(formData.cronologia_ids),
@@ -303,6 +303,38 @@ export function PoiForm({
       
       const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { site_data: payload })
       if (error) throw error
+
+      // Ensure relation tables mirror current selections (draft or published)
+      const savedId = (newSiteId as any)?.id || formData.id!
+      try {
+        const pairs: Array<[string, string, string[]]> = [
+          ['site_cronologia', 'cronologia_id', payload.cronologia_ids || payload.cronologie || []],
+          ['site_definizione', 'definizione_id', payload.definizione_ids || payload.definizioni || []],
+          ['site_tipo_rinvenimento', 'tipo_rinvenimento_id', payload.tipo_rinvenimento_ids || payload.tipi_rinvenimento || []],
+          ['site_grado_esplorazione', 'grado_id', payload.grado_esplorazione_ids || payload.gradi_esplorazione || []],
+          ['site_strutture', 'struttura_id', payload.strutture_ids || payload.strutture || []],
+          ['site_contesti', 'contesto_id', payload.contesti_ids || payload.contesti || []],
+          ['site_indicatori', 'indicatore_id', payload.indicatori_ids || payload.indicatori || []],
+          ['site_ambiti', 'ambito_id', payload.ambiti_ids || payload.ambiti || []],
+        ]
+        const syncLink = async (table: string, col: string, ids: string[]) => {
+          const { data: existing, error: selErr } = await (supabase as any).from(table).select(col as any).eq('site_id', savedId)
+          if (selErr) throw selErr
+          const existingIds = (existing || []).map((r: any) => r[col])
+          const toInsert = ids.filter((id) => !existingIds.includes(id))
+          const toDelete = existingIds.filter((id: string) => !ids.includes(id))
+          if (toDelete.length) {
+            await (supabase as any).from(table).delete().eq('site_id', savedId).in(col as any, toDelete)
+          }
+          if (toInsert.length) {
+            const rows = toInsert.map((id) => ({ site_id: savedId, [col]: id }))
+            await (supabase as any).from(table).insert(rows as any)
+          }
+        }
+        await Promise.all(pairs.map(([t, c, ids]) => syncLink(t, c, ids)))
+      } catch (relErr) {
+        console.warn('Relation sync warning:', relErr)
+      }
       
       // If we have temp files, move them to the site folder
       if (!formData.id && tempFiles.length > 0 && newSiteId) {
