@@ -46,6 +46,7 @@ interface FormData {
   indicatori_ids: string[]
   ambiti_ids: string[]
   biblio_ids: string[]
+  fonte?: string
 }
 
 interface MediaFile {
@@ -119,7 +120,8 @@ export function PoiForm({
     contesti_ids: [],
     indicatori_ids: [],
     ambiti_ids: [],
-    biblio_ids: []
+    biblio_ids: [],
+    fonte: ''
   })
 
   // Load lookups and site data / reset when creating new
@@ -142,7 +144,8 @@ export function PoiForm({
         contesti_ids: [],
         indicatori_ids: [],
         ambiti_ids: [],
-        biblio_ids: []
+        biblio_ids: [],
+        fonte: ''
       })
       onCoordinatesChange?.(null)
     }
@@ -484,7 +487,7 @@ export function PoiForm({
   // Track changes in form fields
   useEffect(() => {
     setHasUnsavedChanges(true)
-  }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione])
+  }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione, formData.fonte])
 
   const canSave = formData.toponimo.trim() && formData.descrizione.trim() && formData.ubicazione_confidenza_id
 
@@ -687,17 +690,39 @@ export function PoiForm({
               <CardTitle className="text-lg">{title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {items.map(item => (
-                  <div key={item.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`${fieldKey}-${item.id}`}
-                      checked={selectedIds.includes(item.id)}
-                      onCheckedChange={() => toggleMultiSelect(fieldKey as keyof FormData, item.id)}
+              <div className="space-y-4">
+                {fieldKey === 'biblio_ids' && (
+                  <div>
+                    <Label htmlFor="fonte-testuale">Fonte bibliografica (testo libero)</Label>
+                    <Textarea
+                      id="fonte-testuale"
+                      value={formData.fonte || ''}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, fonte: e.target.value }))
+                        setHasUnsavedChanges(true)
+                      }}
+                      placeholder="Inserisci fonte bibliografica (es. Autore, Titolo, Anno, Pagine...)"
+                      rows={3}
                     />
-                    <Label htmlFor={`${fieldKey}-${item.id}`}>{item.label}</Label>
                   </div>
-                ))}
+                )}
+                <div className="space-y-2">
+                  {items.length > 0 && (
+                    <>
+                      <Label>Seleziona da bibliografia esistente</Label>
+                      {items.map(item => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${fieldKey}-${item.id}`}
+                            checked={selectedIds.includes(item.id)}
+                            onCheckedChange={() => toggleMultiSelect(fieldKey as keyof FormData, item.id)}
+                          />
+                          <Label htmlFor={`${fieldKey}-${item.id}`}>{item.label}</Label>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
               {selectedIds.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-4">
