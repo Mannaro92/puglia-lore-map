@@ -118,6 +118,21 @@ export function SimpleMapCanvas({
       // Load POI data
       loadPOIData()
       
+      // Ensure POI layers are always on top after basemap changes
+      setTimeout(() => {
+        try {
+          // Move POI layers to top
+          if (map.getLayer('sites-circles')) {
+            map.moveLayer('sites-circles')
+          }
+          if (map.getLayer('sites-labels')) {
+            map.moveLayer('sites-labels')
+          }
+        } catch (e) {
+          console.warn('Could not reorder POI layers:', e)
+        }
+      }, 500)
+      
       // Resize map after load to ensure proper rendering
       setTimeout(() => map.resize(), 0)
     })
