@@ -15,6 +15,7 @@ export type TileProvider = {
   url: string;                 // template {z}/{x}/{y}
   minzoom?: number;
   maxzoom?: number;
+  effectiveMaxZoom?: number;   // Zoom massimo di qualità (può essere diverso da maxzoom)
   tileSize?: number;           // 256 default
   rasterResampling?: 'linear' | 'nearest'; // qualità/definizione raster
   attribution: string;         // HTML safe
@@ -88,14 +89,30 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "tracestrack-topo",
     name: "Tracestrack Topo",
-    description: "Mappa topografica con curve di livello",
+    description: "Mappa topografica con curve di livello (zoom limitato)",
     type: "basemap",
     format: "raster", 
     url: "https://tile.tracestrack.com/topo__/{z}/{x}/{y}.png",
-    maxzoom: 18,
+    maxzoom: 15,  // Ridotto per evitare sgranatura
+    effectiveMaxZoom: 15, // Zoom massimo di qualità
     tileSize: 256,
     rasterResampling: 'linear',
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://www.tracestrack.com/">Tracestrack</a>',
+    enabled: true
+  },
+  {
+    id: "opentopomap",
+    name: "OpenTopoMap",
+    description: "Mappa topografica alternativa ad alta qualità",
+    type: "basemap",
+    format: "raster",
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c"],
+    maxzoom: 17,
+    effectiveMaxZoom: 16, // OpenTopoMap qualità fino a zoom 16
+    tileSize: 256,
+    rasterResampling: 'linear',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
     enabled: true
   },
   {

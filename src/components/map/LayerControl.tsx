@@ -178,6 +178,9 @@ export const LayerControl: React.FC<LayerControlProps> = ({
       return <DisabledProvider provider={provider} />;
     }
     
+    // Indicatore qualità zoom per basemap topografici
+    const hasZoomLimit = provider.effectiveMaxZoom && provider.effectiveMaxZoom < 17;
+    
     return (
       <Button
         variant={isActive ? "default" : "outline"}
@@ -188,7 +191,14 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         <div className="flex items-center gap-2 w-full">
           <MapPin className="h-4 w-4" />
           <div className="flex-1">
-            <div className="font-medium text-sm">{provider.name}</div>
+            <div className="font-medium text-sm flex items-center gap-2">
+              {provider.name}
+              {hasZoomLimit && (
+                <Badge variant="outline" className="text-xs px-1 py-0">
+                  Z{provider.effectiveMaxZoom}
+                </Badge>
+              )}
+            </div>
             {provider.description && (
               <div className="text-xs opacity-70 mt-1">{provider.description}</div>
             )}

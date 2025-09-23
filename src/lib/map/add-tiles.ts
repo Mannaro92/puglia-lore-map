@@ -91,7 +91,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           tiles: [tilesUrl],
           tileSize: provider.tileSize ?? 256,
           minzoom: provider.minzoom ?? 0,
-          maxzoom: provider.maxzoom ?? 22,
+          maxzoom: provider.effectiveMaxZoom ?? provider.maxzoom ?? 22,
           attribution: provider.attribution
         });
 
