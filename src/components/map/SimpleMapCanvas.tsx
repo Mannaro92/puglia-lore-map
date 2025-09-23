@@ -124,6 +124,9 @@ export function SimpleMapCanvas({
       
       // Load POI data
       loadPOIData()
+      
+      // Resize map after load to ensure proper rendering
+      setTimeout(() => map.resize(), 0)
     })
 
     // Handle clicks on POI features

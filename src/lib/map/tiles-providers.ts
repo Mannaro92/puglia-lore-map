@@ -90,9 +90,10 @@ export const TILE_PROVIDERS: TileProvider[] = [
     name: "Tracestrack Topo",
     description: "Mappa topografica con curve di livello",
     type: "basemap",
-    format: "raster",
-    url: "https://tile.tracestrack.com/topo/{z}/{x}/{y}.png",
+    format: "raster", 
+    url: "https://tile.tracestrack.com/topo__/{z}/{x}/{y}.png",
     maxzoom: 18,
+    tileSize: 256,
     rasterResampling: 'linear',
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://www.tracestrack.com/">Tracestrack</a>',
     enabled: true
