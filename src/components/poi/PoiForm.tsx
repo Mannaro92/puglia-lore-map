@@ -281,7 +281,7 @@ export function PoiForm({
         ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
         posizione_id: formData.posizione_id || undefined,
         coordinates: coordinates,
-        // Clean all UUID arrays
+        // Clean all UUID arrays once
         cronologia_ids: cleanUuidArray(formData.cronologia_ids),
         definizione_ids: cleanUuidArray(formData.definizione_ids),
         tipo_rinvenimento_ids: cleanUuidArray(formData.tipo_rinvenimento_ids),
@@ -289,7 +289,16 @@ export function PoiForm({
         strutture_ids: cleanUuidArray(formData.strutture_ids),
         contesti_ids: cleanUuidArray(formData.contesti_ids),
         indicatori_ids: cleanUuidArray(formData.indicatori_ids),
-        ambiti_ids: cleanUuidArray(formData.ambiti_ids)
+        ambiti_ids: cleanUuidArray(formData.ambiti_ids),
+        // Server-side RPC (rpc_upsert_site) may expect plural aliases without _ids
+        cronologie: cleanUuidArray(formData.cronologia_ids),
+        definizioni: cleanUuidArray(formData.definizione_ids),
+        tipi_rinvenimento: cleanUuidArray(formData.tipo_rinvenimento_ids),
+        gradi_esplorazione: cleanUuidArray(formData.grado_esplorazione_ids),
+        strutture: cleanUuidArray(formData.strutture_ids),
+        contesti: cleanUuidArray(formData.contesti_ids),
+        indicatori: cleanUuidArray(formData.indicatori_ids),
+        ambiti: cleanUuidArray(formData.ambiti_ids)
       }
       
       console.log('💾 Saving payload:', payload)
