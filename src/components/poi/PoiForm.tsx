@@ -193,6 +193,8 @@ export function PoiForm({
       if (error) throw error
       if (!site) return
       
+      console.log('🔎 loadSiteData: fonte from DB =', site.fonte)
+      
       // Extract coordinates from geometry
       let coords = null
       if (site.geom_point) {
@@ -491,6 +493,7 @@ export function PoiForm({
 
   // Track changes in form fields
   useEffect(() => {
+    console.log('📝 formData.fonte changed =>', formData.fonte)
     setHasUnsavedChanges(true)
   }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione, formData.fonte])
 
