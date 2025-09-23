@@ -206,9 +206,9 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         title={provider.description}
         aria-label={`${provider.name}. ${provider.description}`}
       >
-         <div className="grid grid-cols-[24px_minmax(0,1fr)_auto] gap-2 w-full items-start">
+         <div className="layer-card grid grid-cols-[24px_minmax(0,1fr)_auto] gap-2 w-full items-start">
           <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
+          <div className="text-wrap min-w-0 flex-1">
             <div className="font-semibold text-sm leading-tight break-words hyphens-auto mb-1 flex items-center gap-2">
               <span className="break-words hyphens-auto">{provider.name}</span>
               {hasZoomLimit && (
@@ -245,7 +245,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
     }
     
     return (
-      <div className="space-y-3 p-3 border rounded-lg">
+      <div className="space-y-3 p-3 border rounded-lg layer-card">
         <div className="grid grid-cols-[minmax(0,1fr)_24px] gap-2 items-start">
           <div className="flex items-start gap-3 min-w-0">
             <Switch
@@ -323,7 +323,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
   const overlayProviders = getOverlayProviders();
 
   return (
-    <Card className={`w-96 max-w-full ${className}`}>
+    <Card className={`layer-panel w-96 max-w-full min-w-0 overflow-x-hidden ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Layers className="h-5 w-5" />
@@ -336,7 +336,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
           <div className="text-sm text-muted-foreground mb-3">
             Seleziona una mappa di base (solo una attiva):
           </div>
-          <div className="space-y-2 overflow-x-hidden min-w-0">
+          <div className="layer-list space-y-2 overflow-x-hidden min-w-0">
             {basemapProviders.map(provider => (
               <BasemapControl key={provider.id} provider={provider} />
             ))}

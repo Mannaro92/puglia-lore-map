@@ -199,3 +199,46 @@ html, body, #root, #__next {
 .memoir-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Layer panel overflow safeguards */
+.layer-panel,
+.layer-panel *[class*="layer-list"],
+.layer-list,
+.layer-card,
+.layer-card .text-wrap { 
+  min-width: 0 !important;
+}
+
+.layer-panel,
+.layer-list { 
+  overflow-x: hidden;
+}
+
+/* Card grid with compressible center column */
+.layer-card {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto; /* icon | text | action */
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+/* Typographic wrapping & hyphenation */
+.layer-card .title,
+.layer-card .desc {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+  white-space: normal;
+}
+
+/* Multi-line clamp for descriptions */
+.layer-card .desc{
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; /* 2 lines on desktop */
+  overflow: hidden;
+}
+@media (min-width: 1280px){
+  .layer-card .desc{ -webkit-line-clamp: 3; }
+}
