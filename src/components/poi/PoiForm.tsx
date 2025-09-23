@@ -303,7 +303,7 @@ export function PoiForm({
       console.log('💾 stato_validazione in formData:', formData.stato_validazione)
       console.log('💾 stato_validazione in payload:', payload.stato_validazione)
       
-      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload } as any)
+      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { site_data: payload })
       if (error) throw error
 
       // Ensure relation tables mirror current selections (draft or published)
