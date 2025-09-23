@@ -3,7 +3,9 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { supabase } from '@/integrations/supabase/client'
 import { MapProvider } from '@/lib/MapContext'
-import { configureMapPerformance } from '@/lib/map/add-tiles'
+import { configureMapPerformance, setBasemap, toggleOverlay } from '@/lib/map/add-tiles'
+import { DEFAULT_BASEMAP } from '@/lib/map/tiles-providers'
+import { getInitialLayerState } from '@/lib/map/url-persistence'
 
 interface SimpleMapCanvasProps {
   onFeatureClick?: (feature: any) => void
@@ -99,6 +101,26 @@ export function SimpleMapCanvas({
     map.on('load', () => {
       console.log('✅ SimpleMapCanvas loaded successfully')
       setMapLoaded(true)
+
+      // Performance tweaks and default layers
+      try {
+        configureMapPerformance(map)
+        const init = getInitialLayerState(DEFAULT_BASEMAP)
+        // Basemap
+        if (init.basemap) {
+          const ok = setBasemap(map as any, init.basemap)
+          console.log('Basemap init', init.basemap, ok)
+        }
+        // Overlays
+        if (init.overlays?.length) {
+          init.overlays.forEach((id) => {
+            const op = init.opacities?.[id] ?? 0.7
+            toggleOverlay(map as any, id, true, op)
+          })
+        }
+      } catch (e) {
+        console.error('Errore init basemap/overlays:', e)
+      }
       
       // Load POI data
       loadPOIData()
