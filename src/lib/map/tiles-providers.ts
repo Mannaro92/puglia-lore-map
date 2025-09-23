@@ -40,7 +40,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "osm-standard",
     name: "OSM Standard",
-    description: "Mappa standard di OpenStreetMap",
+    description: "Riferimento generale con edifici, strade e toponimi: base per localizzare e descrivere i siti.",
     type: "basemap",
     format: "raster",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -52,7 +52,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "osm-hot",
     name: "Umanitario (HOT)",
-    description: "Stile umanitario con enfasi su ospedali, scuole",
+    description: "Enfasi su servizi e infrastrutture locali: utile per contesto antropico e accessibilità dei siti.",
     type: "basemap",
     format: "raster",
     url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
@@ -64,7 +64,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "cyc-osm",
     name: "CyclOSM",
-    description: "Mappa ottimizzata per ciclisti e percorsi",
+    description: "Percorsi e viabilità minore ben evidenziati: confronto tra tracciati attuali e possibili itinerari storici.",
     type: "basemap",
     format: "raster",
     url: "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
@@ -88,8 +88,8 @@ export const TILE_PROVIDERS: TileProvider[] = [
   },
   {
     id: "opentopomap",
-    name: "OpenTopoMap", 
-    description: "Mappa topografica (limitazioni CORS possibili)",
+    name: "OpenTopoMap (Max Z16)", 
+    description: "Topografica con curve di livello: lettura morfologica/altimetrica del paesaggio archeologico.",
     type: "basemap",
     format: "raster", 
     url: "https://tile.opentopomap.org/{z}/{x}/{y}.png", // Rimosso subdomains per evitare CORS issues
@@ -104,7 +104,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "osm-france-topo",
     name: "OSM France Topografico",
-    description: "Mappa topografica francese (più stabile)", 
+    description: "Variante topografica stabile: utile per analisi territoriali su aree estese e verifiche di dettaglio.",
     type: "basemap",
     format: "raster",
     url: "https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
@@ -117,7 +117,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
   {
     id: "shortbread",
     name: "Shortbread",
-    description: "CARTO Positron (chiaro)",
+    description: "Stile chiaro e pulito: adatto a presentazioni, report e stampa delle tavole.",
     type: "basemap",
     format: "raster",
     url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",

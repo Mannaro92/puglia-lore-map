@@ -203,23 +203,27 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         size="sm"
         className="w-full justify-start text-left h-auto p-3"
         onClick={() => handleBasemapChange(provider.id)}
+        title={provider.description}
+        aria-label={`${provider.name}. ${provider.description}`}
       >
-        <div className="flex items-center gap-2 w-full">
-          <MapPin className="h-4 w-4" />
-          <div className="flex-1">
-            <div className="font-medium text-sm flex items-center gap-2">
-              {provider.name}
+        <div className="grid grid-cols-[16px_minmax(0,1fr)_auto] gap-2 w-full items-center">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <div className="min-w-0">
+            <div className="font-medium text-sm flex items-center gap-2 overflow-hidden">
+              <span className="break-words overflow-wrap-anywhere">{provider.name}</span>
               {hasZoomLimit && (
-                <Badge variant="outline" className="text-xs px-1 py-0">
+                <Badge variant="outline" className="text-xs px-1 py-0 shrink-0">
                   Max Z{provider.effectiveMaxZoom}
                 </Badge>
               )}
             </div>
             {provider.description && (
-              <div className="text-xs opacity-70 mt-1">{provider.description}</div>
+              <div className="text-xs opacity-70 mt-1 overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] xl:[-webkit-line-clamp:3] break-words leading-5">
+                {provider.description}
+              </div>
             )}
           </div>
-          {isActive && <Eye className="h-4 w-4" />}
+          {isActive && <Eye className="h-4 w-4 shrink-0" />}
         </div>
       </Button>
     );
@@ -236,23 +240,26 @@ export const LayerControl: React.FC<LayerControlProps> = ({
     
     return (
       <div className="space-y-3 p-3 border rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
+          <div className="flex items-start gap-2 min-w-0">
             <Switch
               checked={isActive}
               onCheckedChange={(checked) => handleOverlayToggle(provider.id, checked)}
+              className="shrink-0 mt-0.5"
             />
-            <div>
-              <div className="font-medium text-sm">{provider.name}</div>
+            <div className="min-w-0" title={provider.description}>
+              <div className="font-medium text-sm break-words overflow-wrap-anywhere">{provider.name}</div>
               {provider.description && (
-                <div className="text-xs text-muted-foreground">{provider.description}</div>
+                <div className="text-xs text-muted-foreground mt-1 overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] xl:[-webkit-line-clamp:3] break-words leading-5">
+                  {provider.description}
+                </div>
               )}
             </div>
           </div>
           {isActive ? (
-            <Eye className="h-4 w-4 text-primary" />
+            <Eye className="h-4 w-4 text-primary shrink-0" />
           ) : (
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
+            <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
           )}
         </div>
         
@@ -312,12 +319,12 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 min-w-0">
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground mb-3">
             Seleziona una mappa di base (solo una attiva):
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             {basemapProviders.map(provider => (
               <BasemapControl key={provider.id} provider={provider} />
             ))}
