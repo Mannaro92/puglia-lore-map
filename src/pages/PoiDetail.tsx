@@ -87,7 +87,7 @@ export default function PoiDetailPage() {
         // Load media - all media for this site (no validation check for now)
         const { data: mediaRows, error: mediaError } = await supabase
           .from('media')
-          .select('id, storage_path, titolo, didascalia, crediti, licenza, ordine')
+          .select('id, storage_path, tipo, titolo, didascalia, crediti, licenza, ordine')
           .eq('site_id', id)
           .order('ordine', { ascending: true })
           .order('created_at', { ascending: true })
