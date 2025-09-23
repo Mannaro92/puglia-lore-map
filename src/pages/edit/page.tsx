@@ -4,12 +4,12 @@ import { PoiMapCanvas } from '@/components/map/PoiMapCanvas'
 import { PoiForm } from '@/components/poi/PoiForm'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { LogOut, Edit, Plus, MapPin } from 'lucide-react'
-import type { User } from '@supabase/supabase-js'
 
 interface UserSite {
   id: string
@@ -23,11 +23,11 @@ interface UserSite {
 export default function EditPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { logout } = useAuth()
   const siteId = searchParams.get('site')
   
   console.log('🚀 EditPage mounted, siteId from URL:', siteId)
   
-  const [user, setUser] = useState<User | null>(null)
   const [coordinates, setCoordinates] = useState<{ lon: number; lat: number } | null>(null)
   const [clickToPlaceMode, setClickToPlaceMode] = useState(false)
   const [focusSiteId, setFocusSiteId] = useState<string | null>(null)
@@ -57,55 +57,23 @@ export default function EditPage() {
   }, [searchParams, selectedSiteId])
 
   useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        navigate('/')
-        return
-      }
-      setUser(user)
-      loadUserSites() // Load sites after authentication
-    }
-    
-    checkAuth()
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session?.user) {
-        navigate('/')
-      } else {
-        setUser(session.user)
-        loadUserSites()
-      }
-    })
-    
-    return () => subscription.unsubscribe()
-  }, [navigate])
+    loadUserSites()
+  }, [])
 
   // Load user's sites
   const loadUserSites = async () => {
     try {
       setLoadingSites(true)
-      console.log('📋 Loading user sites...')
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.log('❌ No user found when loading sites')
-        return
-      }
       
       const { data, error } = await supabase
         .from('sites')
         .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at, created_by')
-        .or(`created_by.eq.${user.id},created_by.eq.00000000-0000-0000-0000-000000000000,created_by.is.null`)
+        .or(`created_by.eq.00000000-0000-0000-0000-000000000000,created_by.is.null`)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
-      console.log('✅ User sites loaded:', data?.length || 0)
       setUserSites(data || [])
     } catch (error: any) {
-      console.error('💥 Error loading user sites:', error)
       toast({
         title: 'Errore caricamento POI',
         description: error.message,
@@ -192,18 +160,11 @@ export default function EditPage() {
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    logout()
     navigate('/')
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-lg">Caricamento...</div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -217,7 +178,7 @@ export default function EditPage() {
           
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
-              {user.email}
+              Amministratore
             </span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />

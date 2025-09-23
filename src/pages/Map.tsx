@@ -3,13 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
 import { LayerControl } from '@/components/map/LayerControl'
 import { SearchBox } from '@/components/map/SearchBox'
-import { LoginModal } from '@/components/auth/LoginModal'
 import { FeatureInfoPanel } from '@/components/panels/FeatureInfoPanel'
 import { Button } from '@/components/ui/button'
 import { LogIn, Edit3, LogOut, Layers } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import type { User } from '@supabase/supabase-js'
 
 export default function MapPage() {
   const navigate = useNavigate()
@@ -17,8 +15,7 @@ export default function MapPage() {
   const { toast } = useToast()
   
   // Auth state
-  const [user, setUser] = useState<User | null>(null)
-  const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const { isAuthenticated, logout } = useAuth()
   
   // Map state
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
@@ -31,27 +28,6 @@ export default function MapPage() {
   })
   const urlFocusSiteId = searchParams.get('focus')
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    
-    checkAuth()
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      if (event === 'SIGNED_IN') {
-        setLoginModalOpen(false)
-        // Navigate to edit page automatically after login
-        navigate('/edit')
-      }
-    })
-    
-    return () => subscription.unsubscribe()
-  }, [])
 
   // Handle URL focus parameter
   useEffect(() => {
@@ -68,15 +44,15 @@ export default function MapPage() {
   }
 
   const handleEditMode = () => {
-    if (user) {
+    if (isAuthenticated) {
       navigate('/edit')
     } else {
-      setLoginModalOpen(true)
+      navigate('/login')
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    logout()
   }
 
   const handleSearchSelect = (result: any) => {
@@ -122,10 +98,10 @@ export default function MapPage() {
               Layer
             </Button>
             
-            {user ? (
+            {isAuthenticated ? (
               <>
                 <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {user.email}
+                  Amministratore
                 </span>
                 <Button variant="outline" size="sm" onClick={handleEditMode}>
                   <Edit3 className="w-4 h-4 mr-2" />
@@ -136,7 +112,7 @@ export default function MapPage() {
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setLoginModalOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
                 <LogIn className="w-4 h-4 mr-2" />
                 Login
               </Button>
@@ -188,10 +164,6 @@ export default function MapPage() {
         )}
       </div>
 
-      <LoginModal 
-        open={loginModalOpen}
-        onOpenChange={setLoginModalOpen}
-      />
     </div>
   )
 }
