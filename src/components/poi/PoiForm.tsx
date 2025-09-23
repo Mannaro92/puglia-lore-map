@@ -217,6 +217,7 @@ export function PoiForm({
         posizione_id: site.posizione_id || '',
         indirizzo_libero: site.indirizzo_libero || '',
         stato_validazione: (site.stato_validazione === 'review' ? 'draft' : site.stato_validazione) || 'draft',
+        fonte: site.fonte || '', // ✅ FIX: Map fonte field from database
         cronologia_ids: site.site_cronologia?.map((r: any) => r.cronologia_id) || [],
         definizione_ids: site.site_definizione?.map((r: any) => r.definizione_id) || [],
         tipo_rinvenimento_ids: site.site_tipo_rinvenimento?.map((r: any) => r.tipo_rinvenimento_id) || [],
