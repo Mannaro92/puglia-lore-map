@@ -303,7 +303,7 @@ export function PoiForm({
       console.log('💾 stato_validazione in formData:', formData.stato_validazione)
       console.log('💾 stato_validazione in payload:', payload.stato_validazione)
       
-      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload, site_data: payload } as any)
+      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload } as any)
       if (error) throw error
 
       // Ensure relation tables mirror current selections (draft or published)
@@ -337,16 +337,32 @@ export function PoiForm({
       } catch (relErr) {
         console.warn('Relation sync warning:', relErr)
       }
-      // Verify status persisted in DB
+      // Verify status persisted in DB and enforce if needed
       try {
-        const { data: verifyRow } = await supabase
+        const { data: verifyRow, error: verifyErr } = await supabase
           .from('sites')
           .select('stato_validazione')
           .eq('id', savedId)
           .maybeSingle();
-        console.log('🔎 DB stato_validazione:', verifyRow?.stato_validazione, '(expected:', formData.stato_validazione, ')')
+        if (verifyErr) throw verifyErr
+        const dbStatus = verifyRow?.stato_validazione
+        console.log('🔎 DB stato_validazione:', dbStatus, '(expected:', formData.stato_validazione, ')')
+        if (formData.stato_validazione && dbStatus !== formData.stato_validazione) {
+          console.warn('⚠️ Stato non aggiornato, forzo update...')
+          const { data: updRow, error: updErr } = await supabase
+            .from('sites')
+            .update({ stato_validazione: formData.stato_validazione as any })
+            .eq('id', savedId)
+            .select('stato_validazione')
+            .maybeSingle()
+          if (updErr) {
+            console.error('❌ Update stato fallito:', updErr)
+          } else {
+            console.log('✅ Stato forzato a:', updRow?.stato_validazione)
+          }
+        }
       } catch (e) {
-        console.warn('Verify status failed:', e)
+        console.warn('Verify/enforce status failed:', e)
       }
       
       // If we have temp files, move them to the site folder
@@ -369,10 +385,10 @@ export function PoiForm({
         }
       }
       
-      const statusMessage = formData.stato_validazione === 'published' ? "pubblicato" : "salvato in bozza"
+      const statusMessage = formData.stato_validazione === 'published' ? 'pubblicato con successo ed è ora visibile sulla mappa' : 'salvato in bozza con successo'
       toast({
-        title: formData.id ? "Sito aggiornato" : "Sito creato",
-        description: `Sito ${statusMessage} con successo!`
+        title: formData.id ? 'Sito aggiornato' : 'Sito creato',
+        description: `Sito ${statusMessage}!`
       })
       
       setHasUnsavedChanges(false)
