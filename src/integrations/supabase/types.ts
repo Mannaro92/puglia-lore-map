@@ -1797,8 +1797,8 @@ export type Database = {
         Returns: Json
       }
       rpc_upsert_site: {
-        Args: { payload: Json }
-        Returns: string
+        Args: { site_data: Json }
+        Returns: Json
       }
       set_limit: {
         Args: { "": number }
