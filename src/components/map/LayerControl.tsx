@@ -206,11 +206,11 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         title={provider.description}
         aria-label={`${provider.name}. ${provider.description}`}
       >
-        <div className="grid grid-cols-[16px_minmax(0,1fr)_auto] gap-2 w-full items-center">
-          <MapPin className="h-4 w-4 shrink-0" />
-          <div className="min-w-0">
-            <div className="font-medium text-sm flex items-center gap-2 overflow-hidden">
-              <span className="break-words overflow-wrap-anywhere">{provider.name}</span>
+         <div className="grid grid-cols-[20px_minmax(0,1fr)_20px] gap-3 w-full items-start">
+          <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-sm flex items-center gap-2 mb-1">
+              <span className="truncate">{provider.name}</span>
               {hasZoomLimit && (
                 <Badge variant="outline" className="text-xs px-1 py-0 shrink-0">
                   Max Z{provider.effectiveMaxZoom}
@@ -218,12 +218,14 @@ export const LayerControl: React.FC<LayerControlProps> = ({
               )}
             </div>
             {provider.description && (
-              <div className="text-xs opacity-70 mt-1 overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] xl:[-webkit-line-clamp:3] break-words leading-5">
+              <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                 {provider.description}
               </div>
             )}
           </div>
-          {isActive && <Eye className="h-4 w-4 shrink-0" />}
+          <div className="shrink-0 mt-0.5">
+            {isActive && <Eye className="h-4 w-4" />}
+          </div>
         </div>
       </Button>
     );
@@ -240,27 +242,29 @@ export const LayerControl: React.FC<LayerControlProps> = ({
     
     return (
       <div className="space-y-3 p-3 border rounded-lg">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
-          <div className="flex items-start gap-2 min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_20px] gap-3 items-start">
+          <div className="flex items-start gap-3 min-w-0">
             <Switch
               checked={isActive}
               onCheckedChange={(checked) => handleOverlayToggle(provider.id, checked)}
-              className="shrink-0 mt-0.5"
+              className="shrink-0 mt-1"
             />
-            <div className="min-w-0" title={provider.description}>
-              <div className="font-medium text-sm break-words overflow-wrap-anywhere">{provider.name}</div>
+            <div className="min-w-0 flex-1" title={provider.description}>
+              <div className="font-medium text-sm mb-1 truncate">{provider.name}</div>
               {provider.description && (
-                <div className="text-xs text-muted-foreground mt-1 overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] xl:[-webkit-line-clamp:3] break-words leading-5">
+                <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                   {provider.description}
                 </div>
               )}
             </div>
           </div>
-          {isActive ? (
-            <Eye className="h-4 w-4 text-primary shrink-0" />
-          ) : (
-            <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
-          )}
+          <div className="shrink-0 mt-1">
+            {isActive ? (
+              <Eye className="h-4 w-4 text-primary" />
+            ) : (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
         
         {isActive && (
@@ -311,7 +315,7 @@ export const LayerControl: React.FC<LayerControlProps> = ({
   const overlayProviders = getOverlayProviders();
 
   return (
-    <Card className={`w-80 ${className}`}>
+    <Card className={`w-96 max-w-full ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Layers className="h-5 w-5" />
@@ -319,12 +323,12 @@ export const LayerControl: React.FC<LayerControlProps> = ({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4 min-w-0">
+      <CardContent className="space-y-4 overflow-hidden">
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground mb-3">
             Seleziona una mappa di base (solo una attiva):
           </div>
-          <div className="space-y-2 min-w-0">
+          <div className="space-y-2 overflow-hidden">
             {basemapProviders.map(provider => (
               <BasemapControl key={provider.id} provider={provider} />
             ))}
