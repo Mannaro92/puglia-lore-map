@@ -10,13 +10,18 @@ interface MediaUploaderProps {
   siteId?: string
   onTempFilesChange?: (files: string[]) => void
   onMediaListChange?: (list: MediaItem[]) => void
+  onPendingFilesChange?: (uploadFn: ((siteId: string) => Promise<void>) | null) => void
 }
 
-export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFilesChange, onMediaListChange }) => {
-  const [sessionId] = useState(getSessionId())
+export const MediaUploader: React.FC<MediaUploaderProps> = ({ 
+  siteId, 
+  onTempFilesChange, 
+  onMediaListChange, 
+  onPendingFilesChange 
+}) => {
   const [uploading, setUploading] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([])
-  const [tempFiles, setTempFiles] = useState<string[]>([])
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const loadMedia = useCallback(async () => {
@@ -35,8 +40,53 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFile
   }, [loadMedia])
 
   useEffect(() => {
-    onTempFilesChange?.(tempFiles)
-  }, [tempFiles, onTempFilesChange])
+    onTempFilesChange?.(pendingFiles.map(f => f.name))
+    // Provide upload function to parent
+    if (pendingFiles.length > 0) {
+      onPendingFilesChange?.(uploadPendingFiles)
+    } else {
+      onPendingFilesChange?.(null)
+    }
+  }, [pendingFiles, onTempFilesChange, onPendingFilesChange])
+  
+  // Function to upload pending files after POI creation
+  const uploadPendingFiles = useCallback(async (newSiteId: string): Promise<void> => {
+    if (pendingFiles.length === 0) return
+    
+    const uploadedItems: Array<{storage_path: string; tipo: string; titolo: string; ordine: number}> = []
+    
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i]
+      const compressed = await compressImage(file)
+      const ext = (compressed.name.split('.').pop() || 'jpg').toLowerCase()
+      const id = crypto.randomUUID()
+      const storagePath = `poi/${newSiteId}/${id}.${ext}`
+      
+      const { error } = await supabase.storage
+        .from('poi-media')
+        .upload(storagePath, compressed, {
+          cacheControl: '3600',
+          upsert: true
+        })
+      
+      if (error) throw error
+      
+      uploadedItems.push({
+        storage_path: storagePath,
+        tipo: 'image',
+        titolo: compressed.name,
+        ordine: i
+      })
+    }
+    
+    // Attach all media at once
+    await supabase.rpc('rpc_attach_media', {
+      p_site_id: newSiteId,
+      p_items: uploadedItems
+    })
+    
+    setPendingFiles([]) // Clear pending files
+  }, [pendingFiles])
 
   const handleDelete = async (mediaId: string) => {
     try {
@@ -51,39 +101,66 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFile
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
-    setUploading(true)
-    try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) {
-          toast({ title: 'Formato non supportato', description: 'Carica solo immagini', variant: 'destructive' })
-          continue
-        }
-        const compressed = await compressImage(file)
-        const { path } = await uploadPoiImage(siteId || null, compressed, sessionId)
-
-        if (siteId) {
-          // Insert immediately for existing site
-          await insertMedia({
-            site_id: siteId,
-            storage_path: path,
-            tipo: 'image',
-            licenza: 'CC BY 4.0',
-            ordine: media.length,
-            titolo: compressed.name,
-          } as any)
-          await loadMedia()
-        } else {
-          // Collect temp file names for later move
-          const fname = path.split('/').pop() || compressed.name
-          setTempFiles((prev) => Array.from(new Set([...prev, fname])))
-        }
+    
+    const validFiles: File[] = []
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Formato non supportato', description: 'Carica solo immagini', variant: 'destructive' })
+        continue
       }
-      toast({ title: 'Upload completato' })
-    } catch (e: any) {
-      console.error(e)
-      toast({ title: 'Errore upload', description: e.message, variant: 'destructive' })
-    } finally {
-      setUploading(false)
+      validFiles.push(file)
+    }
+    
+    if (validFiles.length === 0) return
+    
+    if (siteId) {
+      // Direct upload for existing POI
+      setUploading(true)
+      try {
+        const uploadedItems: Array<{storage_path: string; tipo: string; titolo: string; ordine: number}> = []
+        
+        for (let i = 0; i < validFiles.length; i++) {
+          const file = validFiles[i]
+          const compressed = await compressImage(file)
+          const ext = (compressed.name.split('.').pop() || 'jpg').toLowerCase()
+          const id = crypto.randomUUID()
+          const storagePath = `poi/${siteId}/${id}.${ext}`
+          
+          const { error } = await supabase.storage
+            .from('poi-media')
+            .upload(storagePath, compressed, {
+              cacheControl: '3600',
+              upsert: true
+            })
+          
+          if (error) throw error
+          
+          uploadedItems.push({
+            storage_path: storagePath,
+            tipo: 'image',
+            titolo: compressed.name,
+            ordine: media.length + i
+          })
+        }
+        
+        // Attach all media at once
+        await supabase.rpc('rpc_attach_media', {
+          p_site_id: siteId,
+          p_items: uploadedItems
+        })
+        
+        await loadMedia()
+        toast({ title: 'Upload completato' })
+      } catch (e: any) {
+        console.error(e)
+        toast({ title: 'Errore upload', description: e.message, variant: 'destructive' })
+      } finally {
+        setUploading(false)
+      }
+    } else {
+      // Queue files for upload after POI creation
+      setPendingFiles(prev => [...prev, ...validFiles])
+      toast({ title: `${validFiles.length} file pronti per il salvataggio` })
     }
   }
 
@@ -123,13 +200,20 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ siteId, onTempFile
           </Button>
         </div>
 
-        {(!siteId && tempFiles.length > 0) && (
+        {(!siteId && pendingFiles.length > 0) && (
           <div>
-            <p className="text-sm mb-2">In attesa di salvataggio ({tempFiles.length})</p>
+            <p className="text-sm mb-2">File pronti per il salvataggio ({pendingFiles.length})</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {tempFiles.map((f) => (
-                <div key={f} className="rounded border p-2 text-xs">
-                  temp/{sessionId}/{f}
+              {pendingFiles.map((file, index) => (
+                <div key={index} className="rounded border p-2 text-xs flex items-center justify-between">
+                  <span className="truncate">{file.name}</span>
+                  <button
+                    onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}
+                    className="ml-2 text-red-500 hover:text-red-700"
+                    title="Rimuovi file"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               ))}
             </div>

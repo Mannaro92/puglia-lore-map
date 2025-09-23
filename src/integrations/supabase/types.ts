@@ -1784,6 +1784,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      rpc_attach_media: {
+        Args: { p_items: Json; p_site_id: string }
+        Returns: {
+          created_at: string | null
+          crediti: string | null
+          didascalia: string | null
+          id: string
+          licenza: string | null
+          ordine: number | null
+          site_id: string | null
+          storage_path: string
+          tipo: Database["public"]["Enums"]["tipo_media"]
+          titolo: string | null
+        }[]
+      }
       rpc_get_lookups: {
         Args: Record<PropertyKey, never>
         Returns: Json

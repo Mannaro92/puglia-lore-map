@@ -13,7 +13,6 @@ import { toast } from '@/hooks/use-toast'
 import { Loader2, Save, Trash2, MapPin, X } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { MediaUploader } from '@/components/media/MediaUploader'
-import { getSessionId } from '@/lib/media'
 
 interface PoiFormProps {
   siteId?: string
@@ -66,8 +65,7 @@ export function PoiForm({
   const [loading, setLoading] = useState(false)
   const [lookups, setLookups] = useState<LookupData>({})
   const [loadingLookups, setLoadingLookups] = useState(true)
-  const [tempFiles, setTempFiles] = useState<string[]>([])
-  const [sessionId] = useState(getSessionId())
+  const [pendingUploadFn, setPendingUploadFn] = useState<((siteId: string) => Promise<void>) | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   
   // Controlled string inputs for coordinates
@@ -323,40 +321,65 @@ export function PoiForm({
       }
       
       console.log('💾 Saving payload:', payload)
-      console.log('💾 stato_validazione in formData:', formData.stato_validazione)
-      console.log('💾 stato_validazione in payload:', payload.stato_validazione)
       
-      console.log('📤 UPsert payload →', payload, typeof payload.lat, typeof payload.lon);
+      let savedId = siteId
 
-      const { data: savedPoi, error } = await supabase
-        .rpc('rpc_upsert_site', {
-          p_site_id: siteId || null,
-          p_payload: payload,
-          p_publish: formData.stato_validazione === 'published',
-          p_clear_geom: false,
-          p_user: null // Let the RPC function use auth.uid()
-        });
+      // STEP 1: Create/update POI draft first to get site_id
+      if (!savedId) {
+        // Create new POI as draft first
+        const { data: draftPoi, error: draftError } = await supabase
+          .rpc('rpc_upsert_site', {
+            p_site_id: null,
+            p_payload: payload,
+            p_publish: false, // Always draft first
+            p_clear_geom: false,
+            p_user: null
+          });
 
-      console.log('✅ RPC result →', savedPoi);
+        if (draftError) throw draftError
+        if (!draftPoi?.id) throw new Error('Errore creazione POI: ID mancante')
+        
+        savedId = draftPoi.id
+        console.log('✅ Created draft POI with ID:', savedId)
+      } else {
+        // Update existing POI (but don't publish yet if there are images to upload)
+        const shouldPublish = formData.stato_validazione === 'published' && !pendingUploadFn
+        const { error: updateError } = await supabase
+          .rpc('rpc_upsert_site', {
+            p_site_id: savedId,
+            p_payload: payload,
+            p_publish: shouldPublish,
+            p_clear_geom: false,
+            p_user: null
+          });
 
-      if (error) {
-        console.error('❌ Errore RPC:', error);
-        throw error;
+        if (updateError) throw updateError
+        console.log('✅ Updated POI:', savedId)
       }
 
-      if (!savedPoi || !savedPoi.id) {
-        throw new Error('La risposta del server non contiene un ID valido');
+      // STEP 2: Upload pending images if any
+      if (pendingUploadFn) {
+        console.log('📤 Uploading pending images...')
+        await pendingUploadFn(savedId)
+        console.log('✅ Images uploaded and attached')
       }
 
-      console.log(`🔎 DB stato_validazione: ${savedPoi.stato_validazione}`);
-      
-      // Check if coordinates were saved properly
-      if (payload.lat && payload.lon) {
-        console.log(`🗺️ Coordinate salvate: lat=${payload.lat}, lon=${payload.lon}`);
+      // STEP 3: Publish if requested (after images are uploaded)
+      if (formData.stato_validazione === 'published') {
+        const { error: publishError } = await supabase
+          .rpc('rpc_upsert_site', {
+            p_site_id: savedId,
+            p_payload: {}, // No changes to data, just publish
+            p_publish: true,
+            p_clear_geom: false,
+            p_user: null
+          });
+
+        if (publishError) throw publishError
+        console.log('✅ POI published')
       }
 
       // Ensure relation tables mirror current selections (draft or published)
-      const savedId = savedPoi.id
       try {
         const pairs: Array<[string, string, string[]]> = [
           ['site_cronologia', 'cronologia_id', payload.cronologia_ids || payload.cronologie || []],
@@ -386,53 +409,6 @@ export function PoiForm({
       } catch (relErr) {
         console.warn('Relation sync warning:', relErr)
       }
-      // Verify status persisted in DB and enforce if needed
-      try {
-        const { data: verifyRow, error: verifyErr } = await supabase
-          .from('sites')
-          .select('stato_validazione')
-          .eq('id', savedId)
-          .maybeSingle();
-        if (verifyErr) throw verifyErr
-        const dbStatus = verifyRow?.stato_validazione
-        console.log('🔎 DB stato_validazione:', dbStatus, '(expected:', formData.stato_validazione, ')')
-        if (formData.stato_validazione && dbStatus !== formData.stato_validazione) {
-          console.warn('⚠️ Stato non aggiornato, forzo update...')
-          const { data: updRow, error: updErr } = await supabase
-            .from('sites')
-            .update({ stato_validazione: formData.stato_validazione as any })
-            .eq('id', savedId)
-            .select('stato_validazione')
-            .maybeSingle()
-          if (updErr) {
-            console.error('❌ Update stato fallito:', updErr)
-          } else {
-            console.log('✅ Stato forzato a:', updRow?.stato_validazione)
-          }
-        }
-      } catch (e) {
-        console.warn('Verify/enforce status failed:', e)
-      }
-      
-      // If we have temp files, move them to the site folder
-      if (!formData.id && tempFiles.length > 0 && savedId) {
-        try {
-          const { data: moveResult, error: moveError } = await supabase.functions.invoke('move-temp-to-site', {
-            body: {
-              site_id: savedId,
-              session_id: sessionId,
-              files: tempFiles
-            }
-          })
-          if (moveError) {
-            console.warn('Error moving temp files:', moveError)
-          } else {
-            console.log('Moved temp files:', moveResult)
-          }
-        } catch (e) {
-          console.warn('Move temp files failed:', e)
-        }
-      }
       
       const statusMessage = formData.stato_validazione === 'published' ? 'pubblicato con successo ed è ora visibile sulla mappa' : 'salvato in bozza con successo'
       toast({
@@ -441,7 +417,7 @@ export function PoiForm({
       })
       
       setHasUnsavedChanges(false)
-      onSave?.(savedId || formData.id!)
+      onSave?.(savedId!)
       
     } catch (error: any) {
       console.error('Save error:', error)
@@ -734,7 +710,7 @@ export function PoiForm({
       {/* Media uploader */}
       <MediaUploader 
         siteId={formData.id}
-        onTempFilesChange={setTempFiles}
+        onPendingFilesChange={setPendingUploadFn}
       />
 
       {/* Publication toggle */}
