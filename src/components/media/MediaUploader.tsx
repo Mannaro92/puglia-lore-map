@@ -37,15 +37,6 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     loadMedia()
   }, [loadMedia])
 
-  useEffect(() => {
-    // Provide upload function to parent
-    if (pendingFiles.length > 0) {
-      onPendingFilesChange?.(uploadPendingFiles)
-    } else {
-      onPendingFilesChange?.(null)
-    }
-  }, [pendingFiles, onPendingFilesChange])
-  
   // Function to upload pending files after POI creation
   const uploadPendingFiles = useCallback(async (newSiteId: string): Promise<void> => {
     if (pendingFiles.length === 0) return
@@ -84,6 +75,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     
     setPendingFiles([]) // Clear pending files
   }, [pendingFiles])
+
+  useEffect(() => {
+    // Provide upload function to parent
+    if (pendingFiles.length > 0) {
+      onPendingFilesChange?.(uploadPendingFiles)
+    } else {
+      onPendingFilesChange?.(null)
+    }
+  }, [pendingFiles, onPendingFilesChange, uploadPendingFiles])
+  
 
   const handleDelete = async (mediaId: string) => {
     try {
