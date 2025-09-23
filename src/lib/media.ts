@@ -10,6 +10,10 @@ export interface MediaItem {
   crediti?: string
   licenza: string
   ordine: number
+  size_bytes?: number | null
+  duration_seconds?: number | null
+  width?: number | null
+  height?: number | null
   created_at: string
 }
 

@@ -73,7 +73,7 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
         // 2. Fetch media dal DB
         const { data: mediaRows, error } = await supabase
           .from('media')
-          .select('id, storage_path, titolo, didascalia, crediti, licenza, ordine')
+          .select('id, storage_path, tipo, titolo, didascalia, crediti, licenza, ordine')
           .eq('site_id', siteId)
           .order('ordine', { ascending: true })
           .order('created_at', { ascending: true });

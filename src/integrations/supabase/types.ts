@@ -273,37 +273,49 @@ export type Database = {
           created_at: string | null
           crediti: string | null
           didascalia: string | null
+          duration_seconds: number | null
+          height: number | null
           id: string
           licenza: string | null
           ordine: number | null
           site_id: string | null
+          size_bytes: number | null
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_media"]
           titolo: string | null
+          width: number | null
         }
         Insert: {
           created_at?: string | null
           crediti?: string | null
           didascalia?: string | null
+          duration_seconds?: number | null
+          height?: number | null
           id?: string
           licenza?: string | null
           ordine?: number | null
           site_id?: string | null
+          size_bytes?: number | null
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_media"]
           titolo?: string | null
+          width?: number | null
         }
         Update: {
           created_at?: string | null
           crediti?: string | null
           didascalia?: string | null
+          duration_seconds?: number | null
+          height?: number | null
           id?: string
           licenza?: string | null
           ordine?: number | null
           site_id?: string | null
+          size_bytes?: number | null
           storage_path?: string
           tipo?: Database["public"]["Enums"]["tipo_media"]
           titolo?: string | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -1790,13 +1802,17 @@ export type Database = {
           created_at: string | null
           crediti: string | null
           didascalia: string | null
+          duration_seconds: number | null
+          height: number | null
           id: string
           licenza: string | null
           ordine: number | null
           site_id: string | null
+          size_bytes: number | null
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_media"]
           titolo: string | null
+          width: number | null
         }[]
       }
       rpc_get_lookups: {
@@ -1843,6 +1859,10 @@ export type Database = {
           ubicazione_confidenza_id: string | null
           updated_at: string | null
         }
+      }
+      rpc_video_bytes_used: {
+        Args: { p_site_id: string }
+        Returns: number
       }
       set_limit: {
         Args: { "": number }

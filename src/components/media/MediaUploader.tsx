@@ -12,6 +12,15 @@ interface MediaUploaderProps {
   onPendingFilesChange?: (uploadFn: ((siteId: string) => Promise<void>) | null) => void
 }
 
+const VIDEO_QUOTA_BYTES = 104857600 // 100MB
+const MAX_FILE_SIZE = 104857600 // 100MB per single file
+
+interface PendingFile {
+  file: File
+  preview: string
+  tipo: 'image' | 'video'
+}
+
 export const MediaUploader: React.FC<MediaUploaderProps> = ({ 
   siteId, 
   onMediaListChange, 
@@ -19,8 +28,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 }) => {
   const [uploading, setUploading] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([])
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  const [pendingPreviews, setPendingPreviews] = useState<MediaItem[]>([])
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
+  const [videoUsedBytes, setVideoUsedBytes] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const loadMedia = useCallback(async () => {
@@ -29,6 +38,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       const list = await getSiteMedia(siteId)
       setMedia(list)
       onMediaListChange?.(list)
+      
+      // Update video quota usage
+      const videoBytes = list
+        .filter(m => m.tipo === 'video')
+        .reduce((sum, m) => sum + (m.size_bytes || 0), 0)
+      setVideoUsedBytes(videoBytes)
     } catch (e: any) {
       console.error(e)
       toast({ title: 'Errore caricamento media', description: e?.message || String(e), variant: 'destructive' })
@@ -42,51 +57,89 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   // Function to upload pending files after POI creation
   const uploadPendingFiles = useCallback(async (newSiteId: string): Promise<void> => {
     if (pendingFiles.length === 0) return
-    
-    const uploadedItems: Array<{storage_path: string; tipo: string; titolo: string; ordine: number}> = []
-    
-    for (let i = 0; i < pendingFiles.length; i++) {
-      const file = pendingFiles[i]
-      const compressed = await compressImage(file)
-      const ext = (compressed.name.split('.').pop() || 'jpg').toLowerCase()
-      const id = crypto.randomUUID()
-      const storagePath = `poi/${newSiteId}/${id}.${ext}`
+
+    try {
+      // Check video quota before upload
+      const pendingVideoSize = pendingFiles
+        .filter(pf => pf.tipo === 'video')
+        .reduce((sum, pf) => sum + pf.file.size, 0)
       
-      const { error } = await supabase.storage
-        .from('poi-media')
-        .upload(storagePath, compressed, {
-          cacheControl: '3600',
-          upsert: true
+      if (videoUsedBytes + pendingVideoSize > VIDEO_QUOTA_BYTES) {
+        const availableMB = ((VIDEO_QUOTA_BYTES - videoUsedBytes) / 1048576).toFixed(1)
+        toast({ 
+          title: "Quota video superata", 
+          description: `Disponibili: ${availableMB} MB`, 
+          variant: "destructive" 
         })
+        return
+      }
+
+      const uploadedItems = []
       
-      if (error) throw error
-      
-      uploadedItems.push({
-        storage_path: storagePath,
-        tipo: 'image',
-        titolo: compressed.name,
-        ordine: i
-      })
-    }
-    
-    // Attach all media at once
-    await supabase.rpc('rpc_attach_media', {
-      p_site_id: newSiteId,
-      p_items: uploadedItems
-    })
-    
-    // Clear pending files and previews
-    setPendingFiles([])
-    setPendingPreviews(prev => {
-      // Clean up blob URLs
-      prev.forEach(preview => {
-        if (preview.storage_path.startsWith('blob:')) {
-          URL.revokeObjectURL(preview.storage_path)
+      for (const pendingFile of pendingFiles) {
+        const { file, tipo } = pendingFile
+        
+        if (tipo === 'video') {
+          // Upload video directly
+          const fileName = `${crypto.randomUUID()}.mp4`
+          const filePath = `poi/${newSiteId}/${fileName}`
+          
+          const { error: uploadError } = await supabase.storage
+            .from('poi-media')
+            .upload(filePath, file, {
+              contentType: 'video/mp4',
+              upsert: true,
+              cacheControl: 'public, max-age=31536000, immutable'
+            })
+          
+          if (uploadError) throw uploadError
+          
+          uploadedItems.push({
+            storage_path: filePath,
+            tipo: 'video' as const,
+            titolo: file.name,
+            didascalia: '',
+            ordine: 0,
+            size_bytes: file.size
+          })
+        } else {
+          // Upload image with compression
+          const compressedFile = await compressImage(file)
+          const { path } = await uploadPoiImage(newSiteId, compressedFile, getSessionId())
+          
+          uploadedItems.push({
+            storage_path: path,
+            tipo: 'image' as const,
+            titolo: compressedFile.name,
+            didascalia: '',
+            ordine: 0,
+            size_bytes: compressedFile.size
+          })
         }
+      }
+
+      if (uploadedItems.length > 0) {
+        await supabase.rpc('rpc_attach_media', {
+          p_site_id: newSiteId,
+          p_items: uploadedItems
+        })
+      }
+
+      // Clean up pending files and their blob URLs
+      pendingFiles.forEach(pf => {
+        URL.revokeObjectURL(pf.preview)
       })
-      return []
-    })
-  }, [pendingFiles])
+      
+      setPendingFiles([])
+      await loadMedia()
+      
+      toast({ title: "Upload completato", description: `${uploadedItems.length} file caricati con successo` })
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      const errorMessage = error instanceof Error ? error.message : "Errore nel caricamento dei file"
+      toast({ title: "Errore", description: errorMessage, variant: "destructive" })
+    }
+  }, [pendingFiles, videoUsedBytes, loadMedia])
 
   useEffect(() => {
     // Provide upload function to parent
@@ -97,16 +150,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   }, [pendingFiles, onPendingFilesChange, uploadPendingFiles])
 
-  // Cleanup blob URLs when component unmounts or pending previews change
+  // Cleanup blob URLs when component unmounts
   useEffect(() => {
     return () => {
-      pendingPreviews.forEach(preview => {
-        if (preview.storage_path.startsWith('blob:')) {
-          URL.revokeObjectURL(preview.storage_path)
-        }
+      pendingFiles.forEach(pf => {
+        URL.revokeObjectURL(pf.preview)
       })
     }
-  }, [pendingPreviews])
+  }, [pendingFiles])
   
 
   const handleDelete = async (mediaId: string) => {
@@ -123,86 +174,141 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     
-    const validFiles: File[] = []
+    const validFiles: { file: File; tipo: 'image' | 'video' }[] = []
+    
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) {
-        toast({ title: 'Formato non supportato', description: 'Carica solo immagini', variant: 'destructive' })
+      const isImage = file.type.startsWith('image/')
+      const isVideo = file.type === 'video/mp4'
+      const isValidSize = file.size <= MAX_FILE_SIZE
+      
+      if (!isImage && !isVideo) {
+        toast({ 
+          title: "Tipo file non supportato", 
+          description: `${file.name}: supportati solo immagini e video MP4`, 
+          variant: "destructive" 
+        })
         continue
       }
-      validFiles.push(file)
+      
+      if (!isValidSize) {
+        toast({ 
+          title: "File troppo grande", 
+          description: `${file.name} supera il limite di 100MB`, 
+          variant: "destructive" 
+        })
+        continue
+      }
+      
+      validFiles.push({
+        file,
+        tipo: isVideo ? 'video' : 'image'
+      })
     }
-    
+
     if (validFiles.length === 0) return
+
+    // Check video quota
+    const newVideoSize = validFiles
+      .filter(vf => vf.tipo === 'video')
+      .reduce((sum, vf) => sum + vf.file.size, 0)
+    
+    const currentPendingVideoSize = pendingFiles
+      .filter(pf => pf.tipo === 'video')
+      .reduce((sum, pf) => sum + pf.file.size, 0)
+    
+    if (videoUsedBytes + currentPendingVideoSize + newVideoSize > VIDEO_QUOTA_BYTES) {
+      const availableMB = ((VIDEO_QUOTA_BYTES - videoUsedBytes - currentPendingVideoSize) / 1048576).toFixed(1)
+      toast({ 
+        title: "Quota video superata", 
+        description: `Disponibili: ${availableMB} MB`, 
+        variant: "destructive" 
+      })
+      return
+    }
     
     if (siteId) {
       // Direct upload for existing POI
       setUploading(true)
       try {
-        for (let i = 0; i < validFiles.length; i++) {
-          const file = validFiles[i]
-          const compressed = await compressImage(file)
-          const ext = (compressed.name.split('.').pop() || 'jpg').toLowerCase()
-          const id = crypto.randomUUID()
-          const storagePath = `poi/${siteId}/${id}.${ext}`
-          
-          // Upload to storage
-          const { error: uploadError } = await supabase.storage
-            .from('poi-media')
-            .upload(storagePath, compressed, {
-              cacheControl: '3600',
-              upsert: true
-            })
-          
-          if (uploadError) throw uploadError
-          
-          // Insert directly into media table instead of using RPC
-          const { error: insertError } = await supabase
-            .from('media')
-            .insert({
-              site_id: siteId,
-              storage_path: storagePath,
-              tipo: 'image',
-              titolo: compressed.name,
-              ordine: media.length + i
-            })
-          
-          if (insertError) throw insertError
-        }
+        const uploadedItems = []
         
+        for (const { file, tipo } of validFiles) {
+          if (tipo === 'video') {
+            // Upload video directly
+            const fileName = `${crypto.randomUUID()}.mp4`
+            const filePath = `poi/${siteId}/${fileName}`
+            
+            const { error: uploadError } = await supabase.storage
+              .from('poi-media')
+              .upload(filePath, file, {
+                contentType: 'video/mp4',
+                upsert: true,
+                cacheControl: 'public, max-age=31536000, immutable'
+              })
+            
+            if (uploadError) throw uploadError
+            
+            uploadedItems.push({
+              storage_path: filePath,
+              tipo: 'video' as const,
+              titolo: file.name,
+              didascalia: '',
+              ordine: 0,
+              size_bytes: file.size
+            })
+          } else {
+            // Upload image with compression
+            const compressedFile = await compressImage(file)
+            const ext = (compressedFile.name.split('.').pop() || 'jpg').toLowerCase()
+            const id = crypto.randomUUID()
+            const storagePath = `poi/${siteId}/${id}.${ext}`
+            
+            const { error: uploadError } = await supabase.storage
+              .from('poi-media')
+              .upload(storagePath, compressedFile, {
+                cacheControl: '3600',
+                upsert: true
+              })
+            
+            if (uploadError) throw uploadError
+            
+            uploadedItems.push({
+              storage_path: storagePath,
+              tipo: 'image' as const,
+              titolo: compressedFile.name,
+              didascalia: '',
+              ordine: 0,
+              size_bytes: compressedFile.size
+            })
+          }
+        }
+
+        // Use RPC to attach media with quota check
+        await supabase.rpc('rpc_attach_media', {
+          p_site_id: siteId,
+          p_items: uploadedItems
+        })
+
         await loadMedia()
-        toast({ title: 'Upload completato' })
-      } catch (e: any) {
-        console.error('Upload error:', e)
-        toast({ title: 'Errore upload', description: e.message, variant: 'destructive' })
+        toast({ title: "Upload completato", description: `${validFiles.length} file caricati con successo` })
+      } catch (error) {
+        console.error('Error uploading files:', error)
+        const errorMessage = error instanceof Error ? error.message : "Errore nel caricamento dei file"
+        toast({ title: "Errore", description: errorMessage, variant: "destructive" })
       } finally {
         setUploading(false)
       }
     } else {
-      // Queue files for upload after POI creation and create previews
-      const newPreviews: MediaItem[] = []
+      // Queue for upload when site is created
+      const newPendingFiles: PendingFile[] = validFiles.map(({ file, tipo }) => ({
+        file,
+        tipo,
+        preview: URL.createObjectURL(file)
+      }))
       
-      for (let i = 0; i < validFiles.length; i++) {
-        const file = validFiles[i]
-        const id = crypto.randomUUID()
-        
-        // Create preview with blob URL for immediate display
-        const blobUrl = URL.createObjectURL(file)
-        
-        newPreviews.push({
-          id: `pending-${id}`,
-          site_id: 'pending',
-          storage_path: blobUrl,
-          tipo: 'image',
-          titolo: file.name,
-          licenza: '',
-          ordine: pendingFiles.length + pendingPreviews.length + i,
-          created_at: new Date().toISOString(),
-        } as MediaItem)
-      }
+      setPendingFiles(prev => [...prev, ...newPendingFiles])
       
-      setPendingFiles(prev => [...prev, ...validFiles])
-      setPendingPreviews(prev => [...prev, ...newPreviews])
-      toast({ title: `${validFiles.length} file pronti per il salvataggio` })
+      toast({ title: "File aggiunti", description: `${validFiles.length} file aggiunti alla coda` })
     }
   }
 
@@ -218,7 +324,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Immagini</CardTitle>
+        <CardTitle>Media</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div
@@ -228,11 +334,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center"
         >
           <ImageIcon className="h-8 w-8" />
-          <p className="text-sm">Trascina qui le immagini oppure</p>
+          <p className="text-sm">Trascina immagini e video qui oppure</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Video: {(videoUsedBytes / 1048576).toFixed(1)} MB / 100 MB utilizzati
+            {pendingFiles.filter(pf => pf.tipo === 'video').length > 0 && 
+              ` (+${(pendingFiles.filter(pf => pf.tipo === 'video').reduce((sum, pf) => sum + pf.file.size, 0) / 1048576).toFixed(1)} MB in coda)`
+            }
+          </p>
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4"
             multiple
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
@@ -242,25 +354,39 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           </Button>
         </div>
 
-        {(!siteId && (pendingFiles.length > 0 || pendingPreviews.length > 0)) && (
+        {!siteId && pendingFiles.length > 0 && (
           <div>
             <p className="text-sm mb-2">File pronti per il salvataggio ({pendingFiles.length})</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {pendingPreviews.map((preview, index) => (
-                <div key={preview.id} className="rounded overflow-hidden border relative group">
-                  <img 
-                    src={preview.storage_path} 
-                    alt={preview.titolo || 'Anteprima'} 
-                    className="w-full h-32 object-cover" 
-                  />
+              {pendingFiles.map((pendingFile, index) => (
+                <div key={index} className="rounded overflow-hidden border relative group">
+                  {pendingFile.tipo === 'video' ? (
+                    <video
+                      src={pendingFile.preview}
+                      className="w-full h-32 object-cover"
+                      controls={false}
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={pendingFile.preview}
+                      alt={pendingFile.file.name}
+                      className="w-full h-32 object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="text-white text-xs text-center px-2">
+                      <p className="truncate">{pendingFile.file.name}</p>
+                      <p>{pendingFile.tipo === 'video' ? '🎥' : '🖼️'} {(pendingFile.file.size / 1048576).toFixed(1)} MB</p>
+                    </div>
+                  </div>
                   <button
                     onClick={() => {
-                      // Remove from both pending arrays
-                      setPendingFiles(prev => prev.filter((_, i) => i !== index))
-                      setPendingPreviews(prev => {
+                      setPendingFiles(prev => {
                         const updated = prev.filter((_, i) => i !== index)
                         // Clean up blob URL
-                        URL.revokeObjectURL(preview.storage_path)
+                        URL.revokeObjectURL(pendingFile.preview)
                         return updated
                       })
                     }}
@@ -269,7 +395,6 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                   >
                     <X className="w-3 h-3" />
                   </button>
-                  <div className="p-2 text-xs truncate">{preview.titolo}</div>
                 </div>
               ))}
             </div>
@@ -284,15 +409,34 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 const url = data.publicUrl
                 return (
                   <div key={m.id} className="rounded overflow-hidden border relative group">
-                    <img src={url} alt={m.titolo || 'Immagine POI'} className="w-full h-32 object-cover" />
-                    {/* X per eliminare in alto a destra */}
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Elimina immagine"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    {m.tipo === 'video' ? (
+                      <video
+                        src={url}
+                        className="w-full h-32 object-cover"
+                        controls={false}
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img src={url} alt={m.titolo || 'Immagine POI'} className="w-full h-32 object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        {m.tipo === 'video' && (
+                          <span className="text-white text-xs bg-black/50 px-2 py-1 rounded">
+                            🎥 {m.size_bytes ? (m.size_bytes / 1048576).toFixed(1) + ' MB' : ''}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDelete(m.id)}
+                          className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                          title={`Elimina ${m.tipo === 'video' ? 'video' : 'immagine'}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                     <div className="p-2 text-xs truncate">{m.titolo || m.storage_path.split('/').pop()}</div>
                   </div>
                 )
