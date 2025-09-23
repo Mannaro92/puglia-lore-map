@@ -306,6 +306,7 @@ export function PoiForm({
         ...formData,
         ubicazione_confidenza_id: formData.ubicazione_confidenza_id,
         posizione_id: (formData.posizione_id && isValidUuid(formData.posizione_id)) ? formData.posizione_id : null,
+        fonte: formData.fonte, // Explicitly include fonte field
         // Include lat/lon as separate numeric fields instead of coordinates object
         ...(lat !== undefined && lon !== undefined ? { lat, lon } : {}),
         // Clean all UUID arrays once
@@ -331,6 +332,7 @@ export function PoiForm({
       }
       
       console.log('💾 Saving payload:', payload)
+      console.log('📝 Fonte field value:', formData.fonte)
       
       let savedId = siteId
 
