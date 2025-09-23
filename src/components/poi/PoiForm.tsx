@@ -415,37 +415,8 @@ export function PoiForm({
         console.log('✅ POI published')
       }
 
-      // Ensure relation tables mirror current selections (draft or published)
-      try {
-        const pairs: Array<[string, string, string[]]> = [
-          ['site_cronologia', 'cronologia_id', payload.cronologia_ids || payload.cronologie || []],
-          ['site_definizione', 'definizione_id', payload.definizione_ids || payload.definizioni || []],
-          ['site_tipo_rinvenimento', 'tipo_rinvenimento_id', payload.tipo_rinvenimento_ids || payload.tipi_rinvenimento || []],
-          ['site_grado_esplorazione', 'grado_id', payload.grado_esplorazione_ids || payload.gradi_esplorazione || []],
-          ['site_strutture', 'struttura_id', payload.strutture_ids || payload.strutture || []],
-          ['site_contesti', 'contesto_id', payload.contesti_ids || payload.contesti || []],
-          ['site_indicatori', 'indicatore_id', payload.indicatori_ids || payload.indicatori || []],
-          ['site_ambiti', 'ambito_id', payload.ambiti_ids || payload.ambiti || []],
-          ['site_biblio', 'biblio_id', payload.biblio_ids || payload.bibliografie || []],
-        ]
-        const syncLink = async (table: string, col: string, ids: string[]) => {
-          const { data: existing, error: selErr } = await (supabase as any).from(table).select(col as any).eq('site_id', savedId)
-          if (selErr) throw selErr
-          const existingIds = (existing || []).map((r: any) => r[col])
-          const toInsert = ids.filter((id) => !existingIds.includes(id))
-          const toDelete = existingIds.filter((id: string) => !ids.includes(id))
-          if (toDelete.length) {
-            await (supabase as any).from(table).delete().eq('site_id', savedId).in(col as any, toDelete)
-          }
-          if (toInsert.length) {
-            const rows = toInsert.map((id) => ({ site_id: savedId, [col]: id }))
-            await (supabase as any).from(table).insert(rows as any)
-          }
-        }
-        await Promise.all(pairs.map(([t, c, ids]) => syncLink(t, c, ids)))
-      } catch (relErr) {
-        console.warn('Relation sync warning:', relErr)
-      }
+      // ✅ All relation syncing is now handled by rpc_upsert_site function
+      // No need to manually sync link tables - the SECURITY DEFINER function handles it
       
       const statusMessage = formData.stato_validazione === 'published' ? 'pubblicato con successo ed è ora visibile sulla mappa' : 'salvato in bozza con successo'
       toast({
