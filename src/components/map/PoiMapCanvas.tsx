@@ -153,14 +153,12 @@ export function PoiMapCanvas({
       // Check if we clicked on an existing POI
       const features = map.queryRenderedFeatures(e.point, { layers: ['sites-circles'] })
       
-      // If no POI was clicked and we have an onMapClick handler, place a marker
+      // If no POI was clicked and we have an onMapClick handler, update marker position
       if (features.length === 0 && onMapClick) {
         const lat = +e.lngLat.lat.toFixed(8)
         const lng = +e.lngLat.lng.toFixed(8)
         
-        // QA Fix: Removed console.log for production performance
-        
-        // Create or update marker immediately
+        // ✅ EDIT: move existing marker; CREATE: place new marker
         ensureMarker(lng, lat)
         
         onMapClick({ lng, lat })
@@ -227,7 +225,7 @@ export function PoiMapCanvas({
     canvas.style.cursor = clickToPlaceMode ? 'crosshair' : ''
   }, [clickToPlaceMode])
 
-  // Helper function to create/ensure marker exists
+  // Helper function to create/ensure single controlled marker
   const ensureMarker = (lng?: number, lat?: number) => {
     if (!mapRef.current || !mapLoaded) return
     
@@ -235,7 +233,7 @@ export function PoiMapCanvas({
     const targetLat = lat ?? coordinates?.lat ?? 41.1
     
     if (!clickMarker) {
-      // Create new marker
+      // Create new marker - SINGLE controlled marker
       const marker = new maplibregl.Marker({
         color: '#e63946',
         draggable: true
@@ -243,18 +241,17 @@ export function PoiMapCanvas({
         .setLngLat([targetLng, targetLat])
         .addTo(mapRef.current)
       
-      // Handle marker drag
+      // Handle marker drag - updates coordinates
       marker.on('dragend', () => {
         const lngLat = marker.getLngLat()
         const lat = +lngLat.lat.toFixed(8)
         const lng = +lngLat.lng.toFixed(8)
-        // QA Fix: Removed console.log for production performance
         onMapClick?.({ lng, lat })
       })
       
       setClickMarker(marker)
     } else {
-      // Update existing marker position
+      // ✅ EDIT mode: move existing marker instead of creating new one
       clickMarker.setLngLat([targetLng, targetLat])
     }
   }
@@ -264,14 +261,24 @@ export function PoiMapCanvas({
     if (!mapRef.current || !mapLoaded) return
     
     if (coordinates) {
+      // ✅ Always ensure single marker at coordinate position
       ensureMarker(coordinates.lon, coordinates.lat)
       
-      // Center map on new coordinates with smooth animation
-      mapRef.current.easeTo({
-        center: [coordinates.lon, coordinates.lat],
-        zoom: Math.max(mapRef.current.getZoom(), 13),
-        duration: 300
-      })
+      // Center map on coordinates with smooth animation (only if far away)
+      const currentCenter = mapRef.current.getCenter()
+      const distance = Math.sqrt(
+        Math.pow(currentCenter.lng - coordinates.lon, 2) + 
+        Math.pow(currentCenter.lat - coordinates.lat, 2)
+      )
+      
+      // Only pan if marker is far from current view
+      if (distance > 0.01) {
+        mapRef.current.easeTo({
+          center: [coordinates.lon, coordinates.lat],
+          zoom: Math.max(mapRef.current.getZoom(), 13),
+          duration: 300
+        })
+      }
     } else {
       // Remove marker if no coordinates
       if (clickMarker) {

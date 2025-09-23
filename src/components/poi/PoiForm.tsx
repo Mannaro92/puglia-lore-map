@@ -183,29 +183,17 @@ export function PoiForm({
     setLoading(true)
     setDataReady(false) // ✅ Mark data as not ready during load
     try {
-      const { data: site, error } = await supabase
-        .from('sites')
-        .select(`
-          *,
-          site_cronologia(cronologia_id),
-          site_definizione(definizione_id),
-          site_tipo_rinvenimento(tipo_rinvenimento_id),
-          site_grado_esplorazione(grado_id),
-          site_strutture(struttura_id),
-          site_contesti(contesto_id),
-          site_indicatori(indicatore_id),
-          site_ambiti(ambito_id),
-          site_biblio(biblio_id)
-        `)
-        .eq('id', siteId)
-        .maybeSingle(); // Use maybeSingle to avoid errors when no data found
+      // ✅ Use SECURITY DEFINER RPC to bypass RLS on relation tables
+      const { data: siteData, error } = await supabase
+        .rpc('rpc_get_site_full', { p_site_id: siteId })
         
       if (error) throw error
-      if (!site) return
+      if (!siteData) return
       
-      // QA Fix: Removed console.log for production performance
+      // TypeScript fix: cast the JSONB response to expected shape
+      const site = siteData as any
       
-      // Extract coordinates from geometry
+      // Extract coordinates from geometry if present
       let coords = null
       if (site.geom_point) {
         const { data: geoData, error: geoError } = await supabase
@@ -219,7 +207,7 @@ export function PoiForm({
         }
       }
       
-      // ✅ Normalize all arrays to prevent undefined
+      // ✅ Normalize all arrays - they come pre-filtered as arrays from RPC
       const normalizedFormData = {
         id: site.id,
         toponimo: site.toponimo || '',
@@ -229,15 +217,15 @@ export function PoiForm({
         indirizzo_libero: site.indirizzo_libero || '',
         stato_validazione: (site.stato_validazione === 'review' ? 'draft' : site.stato_validazione) || 'draft',
         fonte: site.fonte || '', 
-        cronologia_ids: site.site_cronologia?.map((r: any) => r.cronologia_id) || [],
-        definizione_ids: site.site_definizione?.map((r: any) => r.definizione_id) || [],
-        tipo_rinvenimento_ids: site.site_tipo_rinvenimento?.map((r: any) => r.tipo_rinvenimento_id) || [],
-        grado_esplorazione_ids: site.site_grado_esplorazione?.map((r: any) => r.grado_id) || [],
-        strutture_ids: site.site_strutture?.map((r: any) => r.struttura_id) || [],
-        contesti_ids: site.site_contesti?.map((r: any) => r.contesto_id) || [],
-        indicatori_ids: site.site_indicatori?.map((r: any) => r.indicatore_id) || [],
-        ambiti_ids: site.site_ambiti?.map((r: any) => r.ambito_id) || [],
-        biblio_ids: site.site_biblio?.map((r: any) => r.biblio_id) || []
+        cronologia_ids: site.cronologia_ids || [],
+        definizione_ids: site.definizione_ids || [],
+        tipo_rinvenimento_ids: site.tipo_rinvenimento_ids || [],
+        grado_esplorazione_ids: site.grado_esplorazione_ids || [],
+        strutture_ids: site.strutture_ids || [],
+        contesti_ids: site.contesti_ids || [],
+        indicatori_ids: site.indicatori_ids || [],
+        ambiti_ids: site.ambiti_ids || [],
+        biblio_ids: site.biblio_ids || []
       }
       
       setFormData(normalizedFormData)
@@ -316,11 +304,19 @@ export function PoiForm({
       const lon = effectiveCoords?.lon !== undefined && effectiveCoords?.lon !== null 
         ? Number(effectiveCoords.lon) : undefined;
 
-      // If publishing, require coordinates
-      if (formData.stato_validazione === 'published' && (!lat || !lon)) {
+      // Position validation: distinguish CREATE vs EDIT
+      const isEdit = Boolean(formData.id)
+      const hasCoordinates = lat !== undefined && lon !== undefined
+      
+      // EDIT: coordinates optional only if already present (allow updates without re-placing)
+      // CREATE: coordinates required for publishing
+      if (formData.stato_validazione === 'published' && !hasCoordinates) {
+        const message = isEdit ? 
+          'Le coordinate sono obbligatorie per pubblicare.' :
+          'Per pubblicare è necessario impostare le coordinate (clic sulla mappa o inserisci lat/lon).'
         toast({
           title: 'Coordinate mancanti',
-          description: 'Per pubblicare è necessario impostare le coordinate (clic sulla mappa o inserisci lat/lon).',
+          description: message,
           variant: 'destructive'
         })
         setLoading(false)

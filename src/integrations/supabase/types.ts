@@ -1823,6 +1823,10 @@ export type Database = {
         Args: { poi_id: string }
         Returns: Json
       }
+      rpc_get_site_full: {
+        Args: { p_site_id: string }
+        Returns: Json
+      }
       rpc_list_sites_bbox: {
         Args: { bbox_geom?: unknown; include_drafts?: boolean }
         Returns: Json
