@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +15,7 @@ import {
   MapPin, 
   Eye, 
   EyeOff, 
-  Settings, 
   Key,
-  Share,
   Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -304,55 +301,16 @@ export const LayerControl: React.FC<LayerControlProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <Tabs defaultValue="basemap" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="basemap">Basemap</TabsTrigger>
-            <TabsTrigger value="overlay">Overlay</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="basemap" className="space-y-3 mt-4">
-            <div className="text-sm text-muted-foreground mb-3">
-              Seleziona una mappa di base (solo una attiva):
-            </div>
-            <div className="space-y-2">
-              {basemapProviders.map(provider => (
-                <BasemapControl key={provider.id} provider={provider} />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="overlay" className="space-y-3 mt-4">
-            <div className="text-sm text-muted-foreground mb-3">
-              Aggiungi dati aggiuntivi (più overlay attivi):
-            </div>
-            <div className="space-y-3">
-              {overlayProviders.map(provider => (
-                <OverlayControl key={provider.id} provider={provider} />
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        <Separator />
-        
-        {/* Pulsante condivisione */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => {
-            const shareUrl = generateShareUrl(layerState);
-            navigator.clipboard.writeText(shareUrl);
-            toast({
-              title: "URL copiato!",
-              description: "L'URL con la configurazione layer è stato copiato negli appunti.",
-              duration: 3000
-            });
-          }}
-        >
-          <Share className="h-4 w-4 mr-2" />
-          Condividi Configurazione
-        </Button>
+        <div className="space-y-3">
+          <div className="text-sm text-muted-foreground mb-3">
+            Seleziona una mappa di base (solo una attiva):
+          </div>
+          <div className="space-y-2">
+            {basemapProviders.map(provider => (
+              <BasemapControl key={provider.id} provider={provider} />
+            ))}
+          </div>
+        </div>
         
         <Separator />
         
