@@ -64,7 +64,6 @@ export function PoiForm({
   isClickingToPlace
 }: PoiFormProps) {
   const [loading, setLoading] = useState(false)
-  const [savingDraft, setSavingDraft] = useState(false)
   const [lookups, setLookups] = useState<LookupData>({})
   const [loadingLookups, setLoadingLookups] = useState(true)
   const [tempFiles, setTempFiles] = useState<string[]>([])
@@ -233,7 +232,7 @@ export function PoiForm({
     }
   }
 
-  const handleSave = async (saveAndExit = true) => {
+  const handleSave = async () => {
     // Validation
     if (!formData.toponimo.trim()) {
       toast({
@@ -262,8 +261,7 @@ export function PoiForm({
       return
     }
     
-    const isLoadingState = saveAndExit ? setLoading : setSavingDraft
-    isLoadingState(true)
+    setLoading(true)
     try {
       // Simple UUID validation
       const isValidUuid = (uuid: string) => {
@@ -326,21 +324,14 @@ export function PoiForm({
         }
       }
       
+      const statusMessage = formData.stato_validazione === 'published' ? "pubblicato" : "salvato in bozza"
       toast({
         title: formData.id ? "Sito aggiornato" : "Sito creato",
-        description: saveAndExit ? "Salvato con successo!" : "Salvato in bozza con successo!"
+        description: `Sito ${statusMessage} con successo!`
       })
       
       setHasUnsavedChanges(false)
-      
-      if (saveAndExit) {
-        onSave?.((newSiteId as any)?.id || formData.id!)
-      } else {
-        // Update formData.id if it's a new site
-        if (!formData.id && newSiteId) {
-          setFormData(prev => ({ ...prev, id: (newSiteId as any)?.id || newSiteId }))
-        }
-      }
+      onSave?.((newSiteId as any)?.id || formData.id!)
       
     } catch (error: any) {
       console.error('Save error:', error)
@@ -350,19 +341,8 @@ export function PoiForm({
         variant: "destructive"
       })
     } finally {
-      isLoadingState(false)
+      setLoading(false)
     }
-  }
-
-  const handleSaveDraft = async () => {
-    // Force draft status and save without exiting
-    const currentStatus = formData.stato_validazione
-    setFormData(prev => ({ ...prev, stato_validazione: 'draft' }))
-    
-    // Small delay to ensure state is updated
-    setTimeout(() => {
-      handleSave(false)
-    }, 100)
   }
 
   const handleDelete = async () => {
@@ -668,7 +648,7 @@ export function PoiForm({
           </div>
           {hasUnsavedChanges && (
             <p className="text-sm text-orange-600 mt-1">
-              ⚠️ Modifiche non salvate - clicca "Salva in Bozza" per conservare i dati
+              ⚠️ Modifiche non salvate - clicca "Salva & Esci" per conservare i dati
             </p>
           )}
           <p className="text-sm text-gray-600 mt-2">
@@ -709,25 +689,16 @@ export function PoiForm({
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={loading || savingDraft}>
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
             Annulla
           </Button>
           <Button 
-            onClick={handleSaveDraft} 
-            disabled={!canSave || loading || savingDraft}
-            variant="secondary"
-          >
-            {savingDraft && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            <Save className="w-4 h-4 mr-2" />
-            Salva in Bozza
-          </Button>
-          <Button 
-            onClick={() => handleSave(true)} 
-            disabled={!canSave || loading || savingDraft}
+            onClick={handleSave} 
+            disabled={!canSave || loading}
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Save className="w-4 h-4 mr-2" />
-            Salva & Esci
+            {formData.stato_validazione === 'published' ? 'Salva & Pubblica' : 'Salva & Esci'}
           </Button>
         </div>
       </div>
