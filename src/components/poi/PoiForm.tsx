@@ -291,7 +291,7 @@ export function PoiForm({
       
       console.log('💾 Saving payload:', payload)
       
-      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { payload })
+      const { data: newSiteId, error } = await supabase.rpc('rpc_upsert_site', { site_data: payload })
       if (error) throw error
       
       // If we have temp files, move them to the site folder
@@ -319,7 +319,7 @@ export function PoiForm({
         description: "Salvato con successo!"
       })
       
-      onSave?.(newSiteId || formData.id!)
+      onSave?.((newSiteId as any)?.id || formData.id!)
       
     } catch (error: any) {
       console.error('Save error:', error)
