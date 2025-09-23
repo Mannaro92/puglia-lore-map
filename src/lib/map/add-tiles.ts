@@ -105,7 +105,7 @@ export function ensureProvider(map: Map, provider: TileProvider, opacity = 1): b
           source: sourceId,
           paint: {
             "raster-opacity": opacity,
-            "raster-resampling": "linear",
+            "raster-resampling": (provider as any).rasterResampling ?? "linear",
             "raster-fade-duration": 100 // Transizioni morbide
           }
         }, beforeId);
