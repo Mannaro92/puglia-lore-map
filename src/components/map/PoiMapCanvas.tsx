@@ -33,7 +33,7 @@ export function PoiMapCanvas({
   useEffect(() => {
     if (!containerRef.current) return
     
-    console.log('🗺️ PoiMapCanvas initializing...')
+    // QA Fix: Removed console.log for production performance
     
     // Create simple OSM style
     const osmStyle = {
@@ -144,7 +144,7 @@ export function PoiMapCanvas({
     map.on('click', 'sites-circles', (e) => {
       e.preventDefault()
       if (e.features && e.features.length > 0) {
-        console.log('POI clicked:', e.features[0].properties)
+        // QA Fix: Removed console.log for production performance
       }
     })
 
@@ -158,7 +158,7 @@ export function PoiMapCanvas({
         const lat = +e.lngLat.lat.toFixed(8)
         const lng = +e.lngLat.lng.toFixed(8)
         
-        console.log('🎯 Map clicked at:', { lat, lng })
+        // QA Fix: Removed console.log for production performance
         
         // Create or update marker immediately
         ensureMarker(lng, lat)
@@ -190,7 +190,7 @@ export function PoiMapCanvas({
     if (!mapRef.current) return
     
     try {
-      console.log('📡 Loading POI data...')
+      // QA Fix: Removed console.log for production performance
       const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
         bbox_geom: null,
         include_drafts: true
@@ -201,7 +201,7 @@ export function PoiMapCanvas({
         return
       }
       
-      console.log('✅ Loaded POI data:', geojson)
+      // QA Fix: Removed console.log for production performance
       
       const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource
       if (source && geojson && typeof geojson === 'object') {
@@ -215,7 +215,7 @@ export function PoiMapCanvas({
 
   // Expose refresh function to parent
   const refreshMap = () => {
-    console.log('🔄 Refreshing map data...')
+    // QA Fix: Removed console.log for production performance
     loadPOIData()
   }
 
@@ -248,7 +248,7 @@ export function PoiMapCanvas({
         const lngLat = marker.getLngLat()
         const lat = +lngLat.lat.toFixed(8)
         const lng = +lngLat.lng.toFixed(8)
-        console.log('🎯 Marker dragged to:', { lat, lng })
+        // QA Fix: Removed console.log for production performance
         onMapClick?.({ lng, lat })
       })
       

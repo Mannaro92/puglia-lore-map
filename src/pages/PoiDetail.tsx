@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/integrations/supabase/client'
 import { PoiMedia, type PoiMediaItem } from '@/components/panels/PoiMedia'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 interface PoiData {
   id: string
@@ -147,7 +148,8 @@ export default function PoiDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ErrorBoundary fallbackTitle="Errore caricamento POI" showReload>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-50">
         <div className="container flex h-14 items-center justify-between">
@@ -403,5 +405,6 @@ export default function PoiDetailPage() {
         </Card>
       </main>
     </div>
-  )
+  </ErrorBoundary>
+  );
 }

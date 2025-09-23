@@ -193,7 +193,7 @@ export function PoiForm({
       if (error) throw error
       if (!site) return
       
-      console.log('🔎 loadSiteData: fonte from DB =', site.fonte)
+      // QA Fix: Removed console.log for production performance
       
       // Extract coordinates from geometry
       let coords = null
@@ -334,8 +334,7 @@ export function PoiForm({
         bibliografie: cleanUuidArray(formData.biblio_ids)
       }
       
-      console.log('💾 Saving payload:', payload)
-      console.log('📝 Fonte field value:', formData.fonte)
+      // QA Fix: Removed console.log for production performance
       
       let savedId = siteId
 
@@ -355,7 +354,7 @@ export function PoiForm({
         if (!draftPoi?.id) throw new Error('Errore creazione POI: ID mancante')
         
         savedId = draftPoi.id
-        console.log('✅ Created draft POI with ID:', savedId)
+        // QA Fix: Removed console.log for production performance
       } else {
         // Update existing POI (but don't publish yet if there are images to upload)
         const shouldPublish = formData.stato_validazione === 'published' && !pendingUploadFn
@@ -369,7 +368,7 @@ export function PoiForm({
           });
 
         if (updateError) throw updateError
-        console.log('✅ Updated POI:', savedId)
+        // QA Fix: Removed console.log for production performance
       }
 
       // STEP 2: Upload pending images if any
@@ -494,7 +493,7 @@ export function PoiForm({
 
   // Track changes in form fields
   useEffect(() => {
-    console.log('📝 formData.fonte changed =>', formData.fonte)
+    // QA Fix: Removed console.log for production performance
     setHasUnsavedChanges(true)
   }, [formData.toponimo, formData.descrizione, formData.ubicazione_confidenza_id, formData.posizione_id, formData.indirizzo_libero, formData.stato_validazione, formData.fonte])
 

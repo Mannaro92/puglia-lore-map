@@ -472,11 +472,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                       playsInline
                     />
                   ) : (
-                    <img
-                      src={pendingFile.preview}
-                      alt={pendingFile.file.name}
-                      className="w-full h-32 object-cover"
-                    />
+                      <img
+                        src={pendingFile.preview}
+                        alt={`Anteprima ${pendingFile.file.name}`}
+                        className="w-full h-32 object-cover"
+                        loading="lazy"
+                      />
                   )}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="text-white text-xs text-center px-2">
@@ -522,7 +523,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                         preload="metadata"
                       />
                     ) : (
-                      <img src={url} alt={m.titolo || 'Immagine POI'} className="w-full h-32 object-cover" />
+                      <img 
+                        src={url} 
+                        alt={`${m.titolo || 'Immagine POI'} - Media archeologico`} 
+                        className="w-full h-32 object-cover" 
+                        loading="lazy" 
+                      />
                     )}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="flex items-center gap-2">

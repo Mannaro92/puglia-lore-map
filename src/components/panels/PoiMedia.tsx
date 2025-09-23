@@ -40,20 +40,22 @@ export function PoiMedia({ items }: PoiMediaProps) {
           <DialogTrigger asChild>
             <div className="relative group cursor-pointer">
               {img.tipo === 'video' ? (
-                <video
-                  src={img.publicUrl}
-                  className="w-full h-auto rounded-lg mb-2"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', marginBottom: '8px' }}
-                />
+              <video
+                src={img.publicUrl}
+                className="w-full h-auto rounded-lg mb-2"
+                controls
+                playsInline
+                preload="metadata"
+                aria-label={`Video: ${img.titolo || 'Video del sito archeologico'}`}
+                style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', marginBottom: '8px' }}
+              />
               ) : (
                 <>
                   <img 
                     src={img.publicUrl} 
-                    alt={img.titolo || 'Immagine del sito'} 
+                    alt={`${img.titolo || 'Immagine del sito'} - ${img.didascalia || 'Foto archeologica'}`}
                     className="w-full h-auto rounded-lg mb-2"
+                    loading="lazy"
                     style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', marginBottom: '8px' }}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
@@ -71,12 +73,14 @@ export function PoiMedia({ items }: PoiMediaProps) {
                 controls
                 playsInline
                 preload="metadata"
+                aria-label={`Video ingrandito: ${img.titolo || 'Video del sito archeologico'}`}
               />
             ) : (
               <img
                 src={img.publicUrl}
-                alt={img.titolo || 'Immagine del sito'}
+                alt={`${img.titolo || 'Immagine del sito'} - ${img.didascalia || 'Foto archeologica'}`}
                 className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+                loading="lazy"
               />
             )}
           </DialogContent>
