@@ -23,7 +23,7 @@ interface UserSite {
 export default function EditPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { logout } = useAuth()
+  const { logout, role } = useAuth()
   const siteId = searchParams.get('site')
   
   console.log('🚀 EditPage mounted, siteId from URL:', siteId)
@@ -65,11 +65,18 @@ export default function EditPage() {
     try {
       setLoadingSites(true)
       
-      const { data, error } = await supabase
+      const isAdmin = role === 'admin'
+      
+      let query = supabase
         .from('sites')
         .select('id, toponimo, descrizione, stato_validazione, created_at, updated_at, created_by')
-        .or(`created_by.eq.00000000-0000-0000-0000-000000000000,created_by.is.null`)
-        .order('updated_at', { ascending: false })
+      
+      // Only filter by ownership if not admin
+      if (!isAdmin) {
+        query = query.or(`created_by.eq.00000000-0000-0000-0000-000000000000,created_by.is.null`)
+      }
+      
+      const { data, error } = await query.order('updated_at', { ascending: false })
 
       if (error) throw error
       setUserSites(data || [])
@@ -194,7 +201,9 @@ export default function EditPage() {
         <div className="w-80 border-r bg-background">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">I tuoi POI</h2>
+              <h2 className="text-lg font-semibold">
+                {role === 'admin' ? 'POI del progetto' : 'I tuoi POI'}
+              </h2>
               <Button onClick={handleCreateNew} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuovo
