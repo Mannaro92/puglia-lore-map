@@ -57,7 +57,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       // Update image quota usage  
       const imageBytes = list
         .filter(m => m.tipo === 'image')
-        .reduce((sum, m) => sum + (m.size_bytes || 0), 0)
+        .reduce((sum, m) => {
+          // Per le immagini esistenti senza size_bytes, stimiamo 2MB ciascuna
+          const bytes = m.size_bytes || 2097152; // 2MB default per immagini legacy
+          return sum + bytes;
+        }, 0)
       
       console.debug('[MediaUploader] Quota calculation:', { videoBytes, imageBytes, totalItems: list.length })
       setVideoUsedBytes(videoBytes)
