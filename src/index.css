@@ -26,50 +26,43 @@ html, body, #root, #__next {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 140 50% 40%; /* Verde CHANGES #339966 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 206 100% 69%; /* Azzurro CHANGES #5FAFFF */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 206 100% 69%; /* Azzurro CHANGES */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 140 50% 40%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 140 50% 40%; /* Verde per sidebar */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 140 50% 40%;
+    --sidebar-accent: 206 100% 69%; /* Azzurro per hover */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 206 100% 69%;
   }
 
   .dark {
@@ -121,35 +114,36 @@ html, body, #root, #__next {
   }
 }
 
-/* MEMOIR GIS - Archaeological WebGIS Colors */
+/* CHANGES MEMOIR GIS - Archaeological WebGIS Colors */
 :root {
-  /* MEMOIR Brand Colors */
-  --memoir-ruby: 345 70% 27%; /* Deep ruby #8B0022 for sites */
-  --memoir-ruby-dark: 345 80% 15%; /* Darker ruby #4A0010 for outlines */
-  --memoir-gold: 43 85% 47%; /* Golden highlight #D4A017 */
-  --memoir-amber: 35 90% 55%; /* Amber for routes */
+  /* CHANGES Brand Colors */
+  --changes-verde: 140 50% 40%; /* Verde primario #339966 */
+  --changes-azzurro: 206 100% 69%; /* Azzurro secondario #5FAFFF */
+  --changes-bianco: 0 0% 100%; /* Bianco base #FFFFFF */
+  --changes-verde-dark: 140 50% 30%; /* Verde più scuro per hover */
+  --changes-azzurro-light: 206 100% 85%; /* Azzurro più chiaro */
   
-  /* Ambito Cultuale Colors (Legend) */
-  --cultuale-cristiano: 122 42% 25%; /* Green #2B7A0B for Christian sites */
-  --cultuale-romano: 4 82% 58%; /* Red #E53935 for Roman sites */
-  --cultuale-messapico: 207 71% 39%; /* Blue #1565C0 for Messapic sites */
-  --cultuale-altro: 0 0% 53%; /* Gray #888888 for other sites */
+  /* Ambito Cultuale Colors (Legend) - aggiornati con palette CHANGES */
+  --cultuale-cristiano: 140 50% 40%; /* Verde CHANGES per siti cristiani */
+  --cultuale-romano: 0 84% 58%; /* Rosso per siti romani */
+  --cultuale-messapico: 206 100% 69%; /* Azzurro CHANGES per siti messapici */
+  --cultuale-altro: 0 0% 53%; /* Grigio per altri siti */
   
-  /* Map Interface Colors */
-  --map-bg: 210 15% 95%;
+  /* Map Interface Colors - tema CHANGES */
+  --map-bg: 0 0% 98%;
   --panel-bg: 0 0% 100%;
-  --panel-border: 220 13% 91%;
-  --layer-hover: 210 40% 96%;
+  --panel-border: 0 0% 88%;
+  --layer-hover: 206 100% 95%;
   --search-bg: 0 0% 98%;
-  --feature-selected: 43 85% 47%; /* Gold for selected features */
+  --feature-selected: 140 50% 40%; /* Verde CHANGES per elementi selezionati */
   
   /* Transparency & Overlays */
   --overlay-dark: 0 0% 0% / 0.5;
   --glass-bg: 0 0% 100% / 0.95;
   --glass-border: 0 0% 0% / 0.1;
   
-  /* Gradients */
-  --gradient-memoir: linear-gradient(135deg, hsl(var(--memoir-ruby)), hsl(var(--memoir-gold)));
+  /* Gradients CHANGES */
+  --gradient-changes: linear-gradient(135deg, hsl(var(--changes-verde)), hsl(var(--changes-azzurro)));
   --gradient-panel: linear-gradient(180deg, hsl(var(--panel-bg)), hsl(var(--background)));
   --gradient-glass: linear-gradient(180deg, hsl(var(--glass-bg)), hsl(var(--panel-bg)));
   

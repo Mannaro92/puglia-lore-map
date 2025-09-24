@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from '@/hooks/use-toast'
 import { LogIn } from 'lucide-react'
+import changesLogo from '@/assets/changes-logo.png'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -53,11 +54,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 font-dm-sans">
+      <Card className="w-full max-w-md border-primary/20 shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">MEMOIR GIS</CardTitle>
-          <p className="text-muted-foreground">
+          <div className="flex justify-center mb-4">
+            <img 
+              src={changesLogo} 
+              alt="CHANGES Logo" 
+              className="h-12 w-auto"
+            />
+          </div>
+          <CardTitle className="text-2xl font-bold text-primary">MEMOIR GIS</CardTitle>
+          <p className="text-secondary">
             Accedi per gestire i punti di interesse
           </p>
         </CardHeader>
@@ -89,7 +97,7 @@ export default function LoginPage() {
               />
             </div>
             
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" variant="changes-primary" className="w-full" disabled={loading}>
               <LogIn className="w-4 h-4 mr-2" />
               {loading ? 'Accesso in corso...' : 'Accedi'}
             </Button>

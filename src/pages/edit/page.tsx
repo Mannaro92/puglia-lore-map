@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { LogOut, Edit, Plus, MapPin } from 'lucide-react'
+import changesLogoWhite from '@/assets/changes-logo-white.png'
 
 interface UserSite {
   id: string
@@ -174,20 +175,32 @@ export default function EditPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">MEMOIR GIS</h1>
-            <span className="text-sm text-muted-foreground">Editor</span>
+    <div className="min-h-screen bg-background font-dm-sans">
+      {/* Header CHANGES */}
+      <header className="border-b bg-primary/95 backdrop-blur supports-[backdrop-filter]:bg-primary/60 sticky top-0 z-50">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img 
+              src={changesLogoWhite} 
+              alt="CHANGES Logo" 
+              className="h-8 w-auto"
+            />
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-primary-foreground">MEMOIR GIS</h1>
+              <span className="text-xs text-primary-foreground/80">Editor POI</span>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-primary-foreground/80">
               Amministratore
             </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              className="text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
@@ -196,7 +209,7 @@ export default function EditPage() {
       </header>
 
       {/* Three-column layout: sidebar, form, map */}
-      <div className="flex h-[calc(100vh-3.5rem)]">
+      <div className="flex h-[calc(100vh-4rem)]">
         {/* Left sidebar - POI List */}
         <div className="w-80 border-r bg-background">
           <div className="p-4 border-b">
@@ -204,14 +217,14 @@ export default function EditPage() {
               <h2 className="text-lg font-semibold">
                 {role === 'admin' ? 'POI del progetto' : 'I tuoi POI'}
               </h2>
-              <Button onClick={handleCreateNew} size="sm">
+              <Button onClick={handleCreateNew} size="sm" variant="changes-primary">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuovo
               </Button>
             </div>
           </div>
           
-          <ScrollArea className="h-[calc(100vh-7rem)]">
+          <ScrollArea className="h-[calc(100vh-8rem)]">
             <div className="p-4 space-y-3">
               {loadingSites ? (
                 <div className="flex items-center justify-center py-8">
@@ -227,8 +240,8 @@ export default function EditPage() {
                 userSites.map((site) => (
                   <Card
                     key={site.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedSiteId === site.id ? 'ring-2 ring-blue-500 shadow-md' : ''
+                    className={`cursor-pointer transition-all hover:shadow-md border-primary/20 ${
+                      selectedSiteId === site.id ? 'ring-2 ring-primary shadow-md bg-primary/5' : ''
                     }`}
                     onClick={() => handleSelectSite(site)}
                   >

@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SimpleMapCanvas } from '@/components/map/SimpleMapCanvas'
 import { LayerControl } from '@/components/map/LayerControl'
 import { SearchBox } from '@/components/map/SearchBox'
-import { FeatureInfoPanel } from '@/components/panels/FeatureInfoPanel'
-import { Button } from '@/components/ui/button'
-import { LogIn, Edit3, LogOut, Layers } from 'lucide-react'
+import { FeatureInfoPanel } from '@/components/panels/FeatureInfoPanel'  
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 
@@ -43,18 +43,6 @@ export default function MapPage() {
     setSelectedFeature(feature)
   }
 
-  const handleEditMode = () => {
-    if (isAuthenticated) {
-      navigate('/edit')
-    } else {
-      navigate('/login')
-    }
-  }
-
-  const handleLogout = () => {
-    logout()
-  }
-
   const handleSearchSelect = (result: any) => {
     if (result.type === 'site') {
       // POI result - focus on the site
@@ -82,46 +70,14 @@ export default function MapPage() {
   }
 
   return (
-    <div className="w-full h-screen flex relative">
-      {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container flex h-14 items-center justify-between">
-          <h1 className="text-xl font-bold">MEMOIR GIS</h1>
-          
-          <div className="flex items-center gap-2">
-            <Button 
-              variant={showLayerControl ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setShowLayerControl(!showLayerControl)}
-            >
-              <Layers className="w-4 h-4 mr-2" />
-              Layer
-            </Button>
-            
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  Amministratore
-                </span>
-                <Button variant="outline" size="sm" onClick={handleEditMode}>
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Editor
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
-                <LogIn className="w-4 h-4 mr-2" />
-                Login
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="w-full h-screen flex flex-col relative bg-background font-dm-sans">
+      {/* Header CHANGES */}
+      <Header 
+        showLayerControl={showLayerControl}
+        onToggleLayerControl={() => setShowLayerControl(!showLayerControl)}
+      />
 
-      <div className="flex-1 relative pt-14">
+      <div className="flex-1 relative pt-16 pb-12">
         {/* Map Canvas */}
         <SimpleMapCanvas
           onFeatureClick={handleFeatureClick}
@@ -132,7 +88,7 @@ export default function MapPage() {
         >
           {/* Layer Control Panel */}
           {showLayerControl && (
-            <div className="absolute top-20 left-4 z-20">
+            <div className="absolute top-4 left-4 z-20">
               <LayerControl 
                 className="memoir-panel memoir-scroll max-h-[70vh] overflow-y-auto"
               />
@@ -141,7 +97,7 @@ export default function MapPage() {
         </SimpleMapCanvas>
         
         {/* Search Box */}
-        <div className={`absolute top-20 w-80 z-10 transition-all duration-200 ${
+        <div className={`absolute top-4 w-80 z-10 transition-all duration-200 ${
           showLayerControl ? 'left-[21rem]' : 'left-4'
         }`}>
           <SearchBox
@@ -153,7 +109,7 @@ export default function MapPage() {
         
         {/* Feature Info Panel (if feature selected) */}
         {selectedFeature && (
-          <div className="absolute top-20 right-4 w-80 z-10">
+          <div className="absolute top-4 right-4 w-80 z-10">
             <div className="bg-background border rounded-lg shadow-lg max-h-[70vh] overflow-y-auto">
               <FeatureInfoPanel 
                 feature={selectedFeature}
@@ -164,6 +120,8 @@ export default function MapPage() {
         )}
       </div>
 
+      {/* Footer CHANGES */}
+      <Footer />
     </div>
   )
 }
