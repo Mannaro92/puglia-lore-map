@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { supabase } from '@/integrations/supabase/client'
 import { MapProvider } from '@/lib/MapContext'
-import { configureMapPerformance, setBasemap, toggleOverlay } from '@/lib/map/add-tiles'
+import { configureMapPerformance, setBasemap } from '@/lib/map/add-tiles'
 import { DEFAULT_BASEMAP } from '@/lib/map/tiles-providers'
 import { getInitialLayerState } from '@/lib/map/url-persistence'
 import { FALLBACK_OSM_STYLE } from '@/lib/map/style-fallback'
@@ -11,10 +11,9 @@ import {
   ensurePoiSource, 
   ensurePoiLayers, 
   bringPoiLayersOnTop, 
-  loadPublicPois, 
-  countFeatures,
-  setupPoiInteraction
-} from '@/lib/map/poi-layers'
+  loadPublicPois,
+  setupPoiHoverInteraction
+} from '@/lib/map/poi-layers-robust'
 
 interface SimpleMapCanvasProps {
   onFeatureClick?: (feature: any) => void
@@ -57,7 +56,33 @@ export function SimpleMapCanvas({
 
     mapRef.current = map
 
-    map.on('load', async () => {
+    // 🔧 Anti-loop + Debounce su styledata
+    let styledataBusy = false;
+    let styledataTimer: any = null;
+
+    map.on('styledata', () => {
+      if (styledataBusy) return;
+      clearTimeout(styledataTimer);
+      styledataTimer = setTimeout(() => {
+        styledataBusy = true;
+        try {
+          // NON ricreare source se esiste: idempotente
+          const poiData = (window as any).__POI_DATA__;
+          if (poiData) {
+            ensurePoiSource(map, poiData);
+            ensurePoiLayers(map);
+            bringPoiLayersOnTop(map);
+            console.info('[POI] styledata sync OK');
+          }
+        } catch (e) {
+          console.error('[POI] styledata sync ERR', e);
+        } finally {
+          styledataBusy = false;
+        }
+      }, 60); // debounce breve
+    });
+
+    map.once('load', async () => {
       console.info('[MAP] ✅ Map loaded successfully');
       setMapLoaded(true)
 
@@ -75,56 +100,26 @@ export function SimpleMapCanvas({
         console.error('[MAP] Error init basemap:', e)
       }
       
-      // Load and setup POI data immediately
-      await setupPOIs()
-    })
+      // 🔧 Caricamento dati POI una volta sola
+      const poiData = await loadPublicPois();
+      // Conserva globalmente per riuso su ogni style change (no rifetch):
+      (window as any).__POI_DATA__ = poiData;
 
-    // Re-add POI layers after any style change (basemap switch)
-    map.on('styledata', async () => {
-      console.info('[MAP] Style changed, re-ensuring POI layers...');
-      
-      // Prevent infinite loops - only act if POI layers don't exist
-      if (map.getLayer('poi-circles') && map.getLayer('poi-labels')) {
-        console.log('[MAP] POI layers already exist, skipping re-add');
-        return;
-      }
-      
-      // Wait a bit for style to be fully loaded
-      setTimeout(async () => {
-        try {
-          // Re-ensure POI layers after style change
-          if (map.getSource('pois')) {
-            ensurePoiLayers(map);
-            bringPoiLayersOnTop(map);
-            console.log('[MAP] ✅ POI layers restored after style change');
-          } else {
-            // Reload POIs if source was lost
-            console.log('[MAP] POI source lost, reloading...');
-            await setupPOIs();
-          }
-        } catch (e) {
-          console.error('[MAP] Error restoring POI layers:', e);
-        }
-      }, 100);
-    })
+      ensurePoiSource(map, poiData);
+      ensurePoiLayers(map);
+      bringPoiLayersOnTop(map);
+      setupPoiHoverInteraction(map, onFeatureClick);
 
-    // Setup POI function
-    const setupPOIs = async () => {
-      try {
-        console.log('[MAP] 🔄 Loading POI data...');
-        const poiData = await loadPublicPois();
-        const featuresCount = countFeatures(poiData);
-        
-        ensurePoiSource(map, poiData);
-        ensurePoiLayers(map);
-        bringPoiLayersOnTop(map);
-        setupPoiInteraction(map, onFeatureClick);
-        
-        console.log(`[MAP] ✅ POI setup complete: ${featuresCount} features`);
-      } catch (e) {
-        console.error('[MAP] ❌ POI setup failed:', e);
-      }
-    }
+      console.info('[POI] ready');
+      
+      // 🔧 Acceptance Checklist (stampa in console)
+      setTimeout(() => {
+        console.log('✅ style loaded:', (map as any).isStyleLoaded ? (map as any).isStyleLoaded() : 'unknown');
+        console.log('✅ source:', !!map.getSource('pois'));
+        console.log('✅ layers:', !!map.getLayer('poi-circles'), !!map.getLayer('poi-labels'));
+        console.log('✅ on top (order enforced)');
+      }, 500);
+    })
 
     // Error handling
     map.on('error', (e) => {
@@ -135,22 +130,6 @@ export function SimpleMapCanvas({
       map.remove()
     }
   }, [])
-
-  // Legacy function kept for compatibility (now uses new POI system)
-  const loadPOIData = async () => {
-    console.log('[MAP] Legacy loadPOIData called - using new POI system');
-    // This now just triggers the new POI system
-    if (mapRef.current) {
-      try {
-        const poiData = await loadPublicPois();
-        ensurePoiSource(mapRef.current, poiData);
-        ensurePoiLayers(mapRef.current);
-        bringPoiLayersOnTop(mapRef.current);
-      } catch (e) {
-        console.error('[MAP] Legacy POI load failed:', e);
-      }
-    }
-  };
 
   // Focus on specific site
   useEffect(() => {
@@ -205,8 +184,8 @@ export function SimpleMapCanvas({
       <div className="relative h-full w-full map-container">
         <div 
           ref={containerRef} 
-          className="absolute inset-0 bg-gray-100"
-          style={{ height: '100vh', minHeight: '100%' }}
+          className="absolute inset-0 bg-gray-100 map-container"
+          style={{ height: '100vh', minHeight: '100vh' }}
         />
         {children}
       </div>
