@@ -83,6 +83,12 @@ export function SimpleMapCanvas({
     map.on('styledata', async () => {
       console.info('[MAP] Style changed, re-ensuring POI layers...');
       
+      // Prevent infinite loops - only act if POI layers don't exist
+      if (map.getLayer('poi-circles') && map.getLayer('poi-labels')) {
+        console.log('[MAP] POI layers already exist, skipping re-add');
+        return;
+      }
+      
       // Wait a bit for style to be fully loaded
       setTimeout(async () => {
         try {

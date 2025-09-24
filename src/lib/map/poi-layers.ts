@@ -117,13 +117,15 @@ export function bringPoiLayersOnTop(map: MapInstance) {
 }
 
 /**
- * Find first symbol layer for proper ordering
+ * Find first symbol layer for proper ordering (excluding our own POI layers)
  */
 function firstSymbolLayerId(map: MapInstance): string | null {
   try {
     const layers = map.getStyle()?.layers ?? [];
     for (const layer of layers) {
-      if (layer.type === 'symbol') {
+      if (layer.type === 'symbol' && 
+          layer.id !== 'poi-labels' && 
+          !layer.id.startsWith('poi-')) {
         return layer.id;
       }
     }
