@@ -37,6 +37,13 @@ export function SimpleMapCanvas({
         version: 8,
         glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {
+          // Fallback basemap OSM sempre presente per evitare schermo grigio
+          osm: {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: "© OpenStreetMap contributors"
+          },
           sites: {
             type: "geojson",
             data: {
@@ -46,6 +53,12 @@ export function SimpleMapCanvas({
           }
         },
         layers: [
+          // Basemap fallback: verrà rimosso se il setBasemap va a buon fine
+          {
+            id: "basemap-osm",
+            type: "raster",
+            source: "osm"
+          },
           {
             id: "sites-circles",
             type: "circle",
@@ -124,6 +137,11 @@ export function SimpleMapCanvas({
         // Solo basemap, niente overlay per ottimizzare velocità
         if (init.basemap) {
           const ok = setBasemap(map as any, init.basemap)
+          // Se la basemap è stata impostata correttamente, rimuovi il fallback OSM
+          if (ok) {
+            if (map.getLayer('basemap-osm')) map.removeLayer('basemap-osm')
+            if (map.getSource('osm')) map.removeSource('osm')
+          }
         }
       } catch (e) {
         console.error('Errore init basemap:', e)
@@ -312,7 +330,7 @@ export function SimpleMapCanvas({
         <div 
           ref={containerRef} 
           className="absolute inset-0 bg-gray-100"
-          style={{ minHeight: '100%' }}
+          style={{ minHeight: '100%', height: '100%' }}
         />
         {children}
       </div>
