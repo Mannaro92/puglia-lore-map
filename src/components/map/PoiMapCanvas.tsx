@@ -65,8 +65,16 @@ export function PoiMapCanvas({
           type: "circle" as const,
           source: "sites",
           paint: {
-            "circle-radius": 6,
-            "circle-color": "#e63946",
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              8, 6,
+              12, 10,
+              16, 12,
+              20, 16
+            ],
+            "circle-color": "#1FA380", // Verde CHANGES
             "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
           }
@@ -91,9 +99,9 @@ export function PoiMapCanvas({
             "text-anchor": "top"
           },
           paint: {
-            "text-color": "#333",
+            "text-color": "#1FA380", // Verde CHANGES
             "text-halo-color": "#fff",
-            "text-halo-width": 1
+            "text-halo-width": 2
           }
         }
       ]
