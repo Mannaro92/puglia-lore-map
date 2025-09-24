@@ -160,8 +160,11 @@ export function SimpleMapCanvas({
   // Load POI data using RPC function
   const loadPOIData = async () => {
     if (!mapRef.current) {
+      console.log('🗺️ Map not ready for POI loading');
       return;
     }
+    
+    console.log('🔄 Loading POI data...');
     
     try {
       const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
@@ -169,14 +172,26 @@ export function SimpleMapCanvas({
         include_drafts: false // Only published POIs for public view
       });
       
+      console.log('📊 POI RPC response:', { geojson, error });
+      
       if (error) {
         console.error('❌ Error loading POI data:', error);
         return;
       }
       
+      if (!geojson || typeof geojson !== 'object') {
+        console.log('⚠️ No POI data received or invalid format');
+        return;
+      }
+
+      console.log('✅ POI data loaded, features count:', (geojson as any).features?.length || 0);
+      
       const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource;
-      if (source && geojson && typeof geojson === 'object') {
+      if (source) {
         source.setData(geojson as any);
+        console.log('🎯 POI data set to map source');
+      } else {
+        console.error('❌ Sites source not found on map');
       }
       
     } catch (error) {

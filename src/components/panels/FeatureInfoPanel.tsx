@@ -272,7 +272,7 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Book className="w-4 h-4 text-secondary" />
-              <span className="text-sm font-medium text-primary font-dm-sans">Fonte</span>
+              <span className="text-sm font-medium text-foreground font-dm-sans">Fonte</span>
             </div>
             <p className="text-sm text-foreground font-dm-sans">
               {properties.fonte}
@@ -282,7 +282,7 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
 
         {properties.licenza && (
           <div className="space-y-1">
-            <span className="text-sm font-medium text-primary font-dm-sans">Licenza</span>
+            <span className="text-sm font-medium text-foreground font-dm-sans">Licenza</span>
             <p className="text-sm text-foreground font-dm-sans">
               {properties.licenza}
             </p>
