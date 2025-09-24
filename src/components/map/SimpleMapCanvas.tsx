@@ -6,6 +6,15 @@ import { MapProvider } from '@/lib/MapContext'
 import { configureMapPerformance, setBasemap, toggleOverlay } from '@/lib/map/add-tiles'
 import { DEFAULT_BASEMAP } from '@/lib/map/tiles-providers'
 import { getInitialLayerState } from '@/lib/map/url-persistence'
+import { FALLBACK_OSM_STYLE } from '@/lib/map/style-fallback'
+import { 
+  ensurePoiSource, 
+  ensurePoiLayers, 
+  bringPoiLayersOnTop, 
+  loadPublicPois, 
+  countFeatures,
+  setupPoiInteraction
+} from '@/lib/map/poi-layers'
 
 interface SimpleMapCanvasProps {
   onFeatureClick?: (feature: any) => void
@@ -31,93 +40,14 @@ export function SimpleMapCanvas({
   useEffect(() => {
     if (!containerRef.current) return
     
+    console.info('[MAP] Initializing with fallback OSM style...');
+    
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: {
-        version: 8,
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
-        sources: {
-          // Fallback basemap OSM sempre presente per evitare schermo grigio
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors"
-          },
-          sites: {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: []
-            }
-          }
-        },
-        layers: [
-          // Basemap fallback: verrà rimosso se il setBasemap va a buon fine
-          {
-            id: "basemap-osm",
-            type: "raster",
-            source: "osm"
-          },
-          {
-            id: "sites-circles",
-            type: "circle",
-            source: "sites",
-            layout: {
-              "visibility": "visible"
-            },
-            paint: {
-              "circle-radius": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                8, 8,
-                12, 10,
-                16, 12,
-                20, 16
-              ],
-              "circle-color": "#339966",
-              "circle-stroke-width": 3,
-              "circle-stroke-color": "#ffffff",
-              "circle-opacity": 1,
-              "circle-stroke-opacity": 1
-            }
-          },
-          {
-            id: "sites-labels",
-            type: "symbol",
-            source: "sites",
-            layout: {
-              "visibility": "visible",
-              "text-field": "{toponimo}",
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-              "text-size": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                8, 10,
-                12, 12,
-                16, 14,
-                20, 18
-              ],
-              "text-offset": [0, 2],
-              "text-anchor": "top",
-              "text-allow-overlap": false,
-              "text-ignore-placement": false
-            },
-            paint: {
-              "text-color": "#339966",
-              "text-halo-color": "#ffffff",
-              "text-halo-width": 2,
-              "text-opacity": 1,
-              "text-halo-opacity": 1
-            }
-          }
-        ]
-      } as any,
-      center: initialCenter,
-      zoom: initialZoom,
-      maxZoom: 18,  // Limite generale applicazione
+      style: FALLBACK_OSM_STYLE, // ✅ Fallback immediato OSM
+      center: [16.6, 41.1], // Puglia approx per inquadratura CHANGES
+      zoom: 8,
+      maxZoom: 18,
       minZoom: 5
     })
 
@@ -127,86 +57,72 @@ export function SimpleMapCanvas({
 
     mapRef.current = map
 
-    map.on('load', () => {
+    map.on('load', async () => {
+      console.info('[MAP] ✅ Map loaded successfully');
       setMapLoaded(true)
 
-      // Performance tweaks and default basemap only
+      // Performance tweaks and default basemap
       try {
         configureMapPerformance(map)
         const init = getInitialLayerState(DEFAULT_BASEMAP)
-        // Solo basemap, niente overlay per ottimizzare velocità
+        
+        // Setup basemap (will trigger styledata event)
         if (init.basemap) {
-          const ok = setBasemap(map as any, init.basemap)
-          // Se la basemap è stata impostata correttamente, rimuovi il fallback OSM
-          if (ok) {
-            if (map.getLayer('basemap-osm')) map.removeLayer('basemap-osm')
-            if (map.getSource('osm')) map.removeSource('osm')
-          }
+          console.log(`[MAP] Setting basemap: ${init.basemap}`);
+          setBasemap(map as any, init.basemap)
         }
       } catch (e) {
-        console.error('Errore init basemap:', e)
+        console.error('[MAP] Error init basemap:', e)
       }
       
-      // Load POI data AFTER basemap is ready  
-      setTimeout(() => {
-        console.log('⏰ Scheduled POI data loading...');
-        loadPOIData()
-      }, 800)
+      // Load and setup POI data immediately
+      await setupPOIs()
+    })
+
+    // Re-add POI layers after any style change (basemap switch)
+    map.on('styledata', async () => {
+      console.info('[MAP] Style changed, re-ensuring POI layers...');
       
-      // Ensure POI layers are always on top after basemap changes
-      setTimeout(() => {
+      // Wait a bit for style to be fully loaded
+      setTimeout(async () => {
         try {
-          console.log('🔝 Moving POI layers to top...');
-          // Move POI layers to top with force
-          if (map.getLayer('sites-circles')) {
-            map.moveLayer('sites-circles');
-            console.log('✅ Moved sites-circles layer to top');
+          // Re-ensure POI layers after style change
+          if (map.getSource('pois')) {
+            ensurePoiLayers(map);
+            bringPoiLayersOnTop(map);
+            console.log('[MAP] ✅ POI layers restored after style change');
           } else {
-            console.error('❌ sites-circles layer not found');
+            // Reload POIs if source was lost
+            console.log('[MAP] POI source lost, reloading...');
+            await setupPOIs();
           }
-          if (map.getLayer('sites-labels')) {
-            map.moveLayer('sites-labels');
-            console.log('✅ Moved sites-labels layer to top');
-          } else {
-            console.error('❌ sites-labels layer not found');
-          }
-          
-          // Force layer visibility
-          map.setLayoutProperty('sites-circles', 'visibility', 'visible');
-          map.setLayoutProperty('sites-labels', 'visibility', 'visible');
-          console.log('🎯 Forced POI layer visibility');
-          
         } catch (e) {
-          console.error('❌ Layer reordering failed:', e);
+          console.error('[MAP] Error restoring POI layers:', e);
         }
-      }, 1500) // Increased delay to ensure basemap is fully loaded
-      
-      // Additional check to ensure POI data is loaded after everything settles
-      setTimeout(() => {
-        console.log('🔄 Final POI data check and reload...');
-        loadPOIData()
-      }, 2500)
+      }, 100);
     })
 
-    // Handle clicks on POI features
-    map.on('click', 'sites-circles', (e) => {
-      console.log('🎯 POI circle clicked:', e.features?.[0]);
-      if (e.features && e.features.length > 0) {
-        onFeatureClick?.(e.features[0])
+    // Setup POI function
+    const setupPOIs = async () => {
+      try {
+        console.log('[MAP] 🔄 Loading POI data...');
+        const poiData = await loadPublicPois();
+        const featuresCount = countFeatures(poiData);
+        
+        ensurePoiSource(map, poiData);
+        ensurePoiLayers(map);
+        bringPoiLayersOnTop(map);
+        setupPoiInteraction(map, onFeatureClick);
+        
+        console.log(`[MAP] ✅ POI setup complete: ${featuresCount} features`);
+      } catch (e) {
+        console.error('[MAP] ❌ POI setup failed:', e);
       }
-    })
+    }
 
-    map.on('mouseenter', 'sites-circles', () => {
-      map.getCanvas().style.cursor = 'pointer'
-      console.log('👆 Mouse entered POI circle');
-    })
-
-    map.on('mouseleave', 'sites-circles', () => {
-      map.getCanvas().style.cursor = ''
-    })
-
+    // Error handling
     map.on('error', (e) => {
-      // Map errors handled silently in production
+      console.error('[MAP] Error:', e?.error ?? e);
     })
 
     return () => {
@@ -214,65 +130,19 @@ export function SimpleMapCanvas({
     }
   }, [])
 
-  // Load POI data using RPC function
+  // Legacy function kept for compatibility (now uses new POI system)
   const loadPOIData = async () => {
-    if (!mapRef.current) {
-      console.log('🗺️ Map not ready for POI loading');
-      return;
-    }
-    
-    console.log('🔄 Loading POI data...');
-    
-    try {
-      const { data: geojson, error } = await supabase.rpc('rpc_list_sites_bbox', {
-        bbox_geom: null,
-        include_drafts: false // Only published POIs for public view
-      });
-      
-      console.log('📊 POI RPC response:', { geojson, error });
-      
-      if (error) {
-        console.error('❌ Error loading POI data:', error);
-        return;
+    console.log('[MAP] Legacy loadPOIData called - using new POI system');
+    // This now just triggers the new POI system
+    if (mapRef.current) {
+      try {
+        const poiData = await loadPublicPois();
+        ensurePoiSource(mapRef.current, poiData);
+        ensurePoiLayers(mapRef.current);
+        bringPoiLayersOnTop(mapRef.current);
+      } catch (e) {
+        console.error('[MAP] Legacy POI load failed:', e);
       }
-      
-      if (!geojson || typeof geojson !== 'object') {
-        console.log('⚠️ No POI data received or invalid format');
-        return;
-      }
-
-      const featuresCount = (geojson as any).features?.length || 0;
-      console.log('✅ POI data loaded, features count:', featuresCount);
-      
-      if (featuresCount === 0) {
-        console.warn('⚠️ No POI features found in response');
-        return;
-      }
-
-      // Verifica che il source esista prima di impostare i dati
-      const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource;
-      if (source) {
-        source.setData(geojson as any);
-        console.log('🎯 POI data set to map source');
-        
-        // Debug: verifica che i layer siano visibili
-        setTimeout(() => {
-          const circleLayer = mapRef.current?.getLayer('sites-circles');
-          const labelLayer = mapRef.current?.getLayer('sites-labels');
-          console.log('🔍 Layer visibility check:', {
-            circleLayer: circleLayer ? 'exists' : 'missing',
-            labelLayer: labelLayer ? 'exists' : 'missing',
-            circleVisible: mapRef.current?.getLayoutProperty('sites-circles', 'visibility'),
-            labelVisible: mapRef.current?.getLayoutProperty('sites-labels', 'visibility')
-          });
-        }, 1000);
-        
-      } else {
-        console.error('❌ Sites source not found on map');
-      }
-      
-    } catch (error) {
-      console.error('❌ Error in loadPOIData:', error);
     }
   };
 
@@ -326,11 +196,11 @@ export function SimpleMapCanvas({
 
   return (
     <MapProvider map={mapRef.current}>
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full map-container">
         <div 
           ref={containerRef} 
           className="absolute inset-0 bg-gray-100"
-          style={{ minHeight: '100%', height: '100%' }}
+          style={{ height: '100vh', minHeight: '100%' }}
         />
         {children}
       </div>

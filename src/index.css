@@ -16,11 +16,17 @@ html, body, #root, #__next {
   padding: 0;
 }
 
+/* App shell e componenti mappa */
+.app, .MapShell, .map-container {
+  height: 100%;
+}
+
 /* Map container must have proper dimensions */
 .map-container, #map {
   position: absolute;
   inset: 0;
   min-height: 100vh;
+  height: 100%;
 }
 
 @layer base {
