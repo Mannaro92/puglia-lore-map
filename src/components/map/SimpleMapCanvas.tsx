@@ -52,7 +52,7 @@ export function SimpleMapCanvas({
             source: "sites",
             paint: {
               "circle-radius": 6,
-              "circle-color": "#e63946",
+              "circle-color": "#339966",
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff"
             }
@@ -63,7 +63,7 @@ export function SimpleMapCanvas({
             source: "sites",
             layout: {
               "text-field": "{toponimo}",
-              "text-font": ["Noto Sans Regular"],
+              "text-font": ["DM Sans Regular", "Noto Sans Regular"],
               "text-size": [
                 "interpolate",
                 ["linear"],
@@ -77,9 +77,9 @@ export function SimpleMapCanvas({
               "text-anchor": "top"
             },
             paint: {
-              "text-color": "#333",
+              "text-color": "#339966",
               "text-halo-color": "#fff",
-              "text-halo-width": 1
+              "text-halo-width": 2
             }
           }
         ]

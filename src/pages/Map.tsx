@@ -110,7 +110,7 @@ export default function MapPage() {
         {/* Feature Info Panel (if feature selected) */}
         {selectedFeature && (
           <div className="absolute top-4 right-4 w-80 z-10">
-            <div className="bg-background border rounded-lg shadow-lg max-h-[70vh] overflow-y-auto">
+            <div className="bg-background border border-primary/20 rounded-lg shadow-lg max-h-[70vh] overflow-y-auto">
               <FeatureInfoPanel 
                 feature={selectedFeature}
                 onClose={() => setSelectedFeature(null)}

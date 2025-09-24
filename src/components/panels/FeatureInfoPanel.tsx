@@ -129,15 +129,15 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-4">
+    <div className="h-full overflow-y-auto p-4 space-y-4 font-dm-sans">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold leading-tight">
+          <h3 className="text-xl font-bold text-primary font-dm-sans leading-tight">
             {properties.toponimo || 'Sito archeologico'}
           </h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-            <MapPin className="w-3 h-3" />
+          <div className="flex items-center gap-2 text-sm text-secondary font-dm-sans mt-2">
+            <MapPin className="w-4 h-4" />
             <span>
               {[properties.comune_nome, properties.provincia_nome].filter(Boolean).join(', ')}
             </span>
@@ -145,10 +145,10 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
         </div>
         
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onClose}
-          className="h-8 w-8 p-0 shrink-0"
+          className="h-8 w-8 p-0 shrink-0 border-primary/30 hover:bg-primary/10"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -159,8 +159,8 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {/* Description */}
       {properties.descrizione && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Descrizione</h4>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <h4 className="text-base font-medium text-primary font-dm-sans">Descrizione</h4>
+          <p className="text-sm text-foreground leading-relaxed font-dm-sans">
             {properties.descrizione}
           </p>
         </div>
@@ -169,16 +169,16 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {/* Media Gallery */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <ImageIcon className="w-4 h-4" />
-          <h4 className="text-sm font-medium">Immagini</h4>
+          <ImageIcon className="w-4 h-4 text-secondary" />
+          <h4 className="text-base font-medium text-primary font-dm-sans">Immagini</h4>
           {media.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">
               {media.length}
             </Badge>
           )}
           {/* RLS / visibilità: gestisci published vs draft */}
           {!isUserLoggedIn && properties.stato_validazione === 'draft' && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-primary/30 text-primary">
               Immagini non visibili (bozza)
             </Badge>
           )}
@@ -186,10 +186,12 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
         
         {loadingMedia ? (
           <div className="flex items-center justify-center p-6 bg-muted/30 rounded-lg">
-            <div className="text-sm text-muted-foreground">Caricamento immagini...</div>
+            <div className="text-sm text-muted-foreground font-dm-sans">Caricamento immagini...</div>
           </div>
         ) : (
-          <PoiMedia items={media} />
+          <div className="rounded-lg overflow-hidden">
+            <PoiMedia items={media} />
+          </div>
         )}
       </div>
 
@@ -197,12 +199,12 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {properties.cronologie && properties.cronologie.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <h4 className="text-sm font-medium">Cronologia</h4>
+            <Clock className="w-4 h-4 text-secondary" />
+            <h4 className="text-base font-medium text-primary font-dm-sans">Cronologia</h4>
           </div>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-2">
             {properties.cronologie.map((cronologia: string, index: number) => (
-              <Badge key={index} variant="secondary" className="text-xs">
+              <Badge key={index} className="text-xs bg-secondary text-secondary-foreground font-dm-sans">
                 {cronologia}
               </Badge>
             ))}
@@ -214,12 +216,12 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {properties.definizioni && properties.definizioni.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4" />
-            <h4 className="text-sm font-medium">Tipologia</h4>
+            <Tag className="w-4 h-4 text-secondary" />
+            <h4 className="text-base font-medium text-primary font-dm-sans">Tipologia</h4>
           </div>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-2">
             {properties.definizioni.map((definizione: string, index: number) => (
-              <Badge key={index} variant="outline" className="text-xs">
+              <Badge key={index} variant="outline" className="text-xs border-primary/30 text-primary font-dm-sans">
                 {definizione}
               </Badge>
             ))}
@@ -230,12 +232,12 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {/* Cultural Context */}
       {properties.ambiti && properties.ambiti.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Ambito Cultuale</h4>
-          <div className="flex flex-wrap gap-1">
+          <h4 className="text-base font-medium text-primary font-dm-sans">Ambito Cultuale</h4>
+          <div className="flex flex-wrap gap-2">
             {properties.ambiti.map((ambito: string, index: number) => (
               <Badge 
                 key={index} 
-                className="text-xs"
+                className="text-xs font-dm-sans"
                 style={{
                   backgroundColor: getAmbitoColor(ambito),
                   color: 'white'
@@ -251,10 +253,10 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
       {/* Cult Indicators */}
       {properties.indicatori && properties.indicatori.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Indicatori Cultuali</h4>
-          <div className="grid grid-cols-2 gap-1">
+          <h4 className="text-base font-medium text-primary font-dm-sans">Indicatori Cultuali</h4>
+          <div className="grid grid-cols-2 gap-2">
             {properties.indicatori.map((indicatore: string, index: number) => (
-              <span key={index} className="text-xs bg-muted px-2 py-1 rounded">
+              <span key={index} className="text-xs bg-muted px-3 py-2 rounded-lg font-dm-sans">
                 {indicatore}
               </span>
             ))}
@@ -269,10 +271,10 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
         {properties.fonte && (
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Book className="w-3 h-3" />
-              <span className="text-xs font-medium">Fonte</span>
+              <Book className="w-4 h-4 text-secondary" />
+              <span className="text-sm font-medium text-primary font-dm-sans">Fonte</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-foreground font-dm-sans">
               {properties.fonte}
             </p>
           </div>
@@ -280,8 +282,8 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
 
         {properties.licenza && (
           <div className="space-y-1">
-            <span className="text-xs font-medium">Licenza</span>
-            <p className="text-xs text-muted-foreground">
+            <span className="text-sm font-medium text-primary font-dm-sans">Licenza</span>
+            <p className="text-sm text-foreground font-dm-sans">
               {properties.licenza}
             </p>
           </div>
@@ -290,8 +292,13 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
 
       {/* Action Buttons */}
       <div className="space-y-2 pt-2">
-        <Button variant="outline" size="sm" className="w-full" onClick={handleSchedaCompleta}>
-          <ExternalLink className="w-3 h-3 mr-2" />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-medium font-dm-sans transition-all duration-200" 
+          onClick={handleSchedaCompleta}
+        >
+          <ExternalLink className="w-4 h-4 mr-2" />
           {isUserLoggedIn ? 'Edit' : 'Scheda Completa'}
         </Button>
       </div>
@@ -299,17 +306,17 @@ export function FeatureInfoPanel({ feature, onClose }: FeatureInfoPanelProps) {
   );
 }
 
-// Helper function to get color for cultural context
+// Helper function to get color for cultural context - Updated for CHANGES palette
 function getAmbitoColor(ambito: string): string {
   const colors: Record<string, string> = {
-    'cristiano': 'hsl(200, 80%, 50%)',
-    'romano': 'hsl(0, 80%, 50%)',
-    'messapico': 'hsl(120, 60%, 40%)',
-    'daunio': 'hsl(60, 70%, 45%)',
-    'peuceta': 'hsl(280, 60%, 50%)',
-    'ebraico': 'hsl(220, 70%, 50%)',
-    'islamico': 'hsl(160, 60%, 40%)'
+    'cristiano': 'hsl(var(--changes-verde))', // Verde CHANGES
+    'romano': 'hsl(0, 80%, 50%)', // Rosso per contrasto
+    'messapico': 'hsl(var(--changes-azzurro))', // Azzurro CHANGES
+    'daunio': 'hsl(45, 70%, 45%)', // Mantengo un colore neutro
+    'peuceta': 'hsl(280, 60%, 50%)', // Viola
+    'ebraico': 'hsl(220, 70%, 50%)', // Blu scuro
+    'islamico': 'hsl(160, 60%, 40%)' // Verde acqua
   };
   
-  return colors[ambito.toLowerCase()] || 'hsl(35, 70%, 45%)';
+  return colors[ambito.toLowerCase()] || 'hsl(var(--changes-verde))'; // Default verde CHANGES
 }

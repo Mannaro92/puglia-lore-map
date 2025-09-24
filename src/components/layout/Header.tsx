@@ -52,10 +52,12 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Controlli */}
         <div className="flex items-center gap-2">
           <Button 
-            variant={showLayerControl ? "changes-secondary" : "outline"} 
+            variant="outline"
             size="sm" 
             onClick={onToggleLayerControl}
-            className="text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10"
+            className={`border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200 ${
+              showLayerControl ? 'bg-secondary text-secondary-foreground border-secondary' : ''
+            }`}
           >
             <Layers className="w-4 h-4 mr-2" />
             Layer
@@ -63,23 +65,23 @@ export const Header: React.FC<HeaderProps> = ({
           
           {isAuthenticated ? (
             <>
-              <span className="text-sm text-primary-foreground/80 hidden sm:inline font-dm-sans">
+              <span className="text-sm text-primary-foreground font-dm-sans hidden sm:inline">
                 Amministratore
               </span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleEditMode}
-                className="text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10"
+                className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200"
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 Editor
               </Button>
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
+                className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all duration-200"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -89,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/login')}
-              className="text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10"
+              className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200"
             >
               <LogIn className="w-4 h-4 mr-2" />
               Login

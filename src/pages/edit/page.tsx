@@ -217,7 +217,7 @@ export default function EditPage() {
               <h2 className="text-lg font-semibold">
                 {role === 'admin' ? 'POI del progetto' : 'I tuoi POI'}
               </h2>
-              <Button onClick={handleCreateNew} size="sm" variant="changes-primary">
+              <Button onClick={handleCreateNew} size="sm" className="bg-primary hover:bg-secondary text-primary-foreground font-medium font-dm-sans transition-all duration-200">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuovo
               </Button>

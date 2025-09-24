@@ -235,7 +235,7 @@ export function PoiMapCanvas({
     if (!clickMarker) {
       // Create new marker - SINGLE controlled marker
       const marker = new maplibregl.Marker({
-        color: '#e63946',
+        color: '#339966',
         draggable: true
       })
         .setLngLat([targetLng, targetLat])

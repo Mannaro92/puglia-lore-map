@@ -56,18 +56,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 font-dm-sans">
       <Card className="w-full max-w-md border-primary/20 shadow-lg">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img 
-              src={changesLogo} 
-              alt="CHANGES Logo" 
-              className="h-12 w-auto"
-            />
+        <CardHeader className="text-center space-y-4">
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold text-primary font-dm-sans">MEMOIR GIS</CardTitle>
+            <p className="text-secondary font-dm-sans text-base">
+              Accedi per gestire i punti di interesse
+            </p>
           </div>
-          <CardTitle className="text-2xl font-bold text-primary">MEMOIR GIS</CardTitle>
-          <p className="text-secondary">
-            Accedi per gestire i punti di interesse
-          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -97,7 +92,11 @@ export default function LoginPage() {
               />
             </div>
             
-            <Button type="submit" variant="changes-primary" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-secondary text-primary-foreground font-medium font-dm-sans transition-all duration-200" 
+              disabled={loading}
+            >
               <LogIn className="w-4 h-4 mr-2" />
               {loading ? 'Accesso in corso...' : 'Accedi'}
             </Button>

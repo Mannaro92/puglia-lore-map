@@ -25,7 +25,7 @@ export function PoiMedia({ items }: PoiMediaProps) {
   if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg text-center">
-        <p className="text-sm text-muted-foreground">Nessuna immagine disponibile</p>
+        <p className="text-sm text-muted-foreground font-dm-sans">Nessuna immagine disponibile</p>
       </div>
     );
   }
@@ -74,6 +74,7 @@ export function PoiMedia({ items }: PoiMediaProps) {
                 playsInline
                 preload="metadata"
                 aria-label={`Video ingrandito: ${img.titolo || 'Video del sito archeologico'}`}
+                style={{ borderRadius: '8px' }}
               />
             ) : (
               <img
@@ -81,6 +82,7 @@ export function PoiMedia({ items }: PoiMediaProps) {
                 alt={`${img.titolo || 'Immagine del sito'} - ${img.didascalia || 'Foto archeologica'}`}
                 className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
                 loading="lazy"
+                style={{ borderRadius: '8px' }}
               />
             )}
           </DialogContent>
@@ -89,7 +91,7 @@ export function PoiMedia({ items }: PoiMediaProps) {
 
       {/* Caption/Credits */}
       {(img.didascalia || img.crediti || img.licenza) && (
-        <p className="text-xs text-muted-foreground italic">
+        <p className="text-xs text-muted-foreground italic font-dm-sans">
           {img.didascalia}
           {img.crediti ? ` — © ${img.crediti}` : ''}
           {img.licenza ? ` (${img.licenza})` : ''}
@@ -103,21 +105,21 @@ export function PoiMedia({ items }: PoiMediaProps) {
             <button 
               key={m.id} 
               onClick={() => setActive(i)} 
-              className={`border rounded ${i === active ? 'ring-2 ring-primary' : ''} flex-shrink-0 relative`}
+              className={`border rounded-lg ${i === active ? 'ring-2 ring-primary border-primary' : 'border-primary/20'} flex-shrink-0 relative transition-all duration-200`}
             >
               {m.tipo === 'video' ? (
                 <>
                   <video 
                     src={m.publicUrl} 
-                    className="h-20 w-28 object-cover rounded"
+                    className="h-20 w-28 object-cover rounded-lg"
                     muted
                     playsInline
                     preload="metadata"
-                    style={{ maxHeight: '80px' }}
+                    style={{ maxHeight: '80px', borderRadius: '6px' }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-black/50 rounded-full p-1">
-                      <span className="text-white text-xs">▶</span>
+                  <div className="absolute inset-0 flex items-center justify-center rounded-lg">
+                    <div className="bg-primary/80 rounded-full p-1.5">
+                      <span className="text-primary-foreground text-xs">▶</span>
                     </div>
                   </div>
                 </>
@@ -125,8 +127,8 @@ export function PoiMedia({ items }: PoiMediaProps) {
                 <img 
                   src={m.publicUrl} 
                   alt={m.titolo || 'thumb'} 
-                  className="h-20 w-28 object-cover rounded"
-                  style={{ maxHeight: '80px' }}
+                  className="h-20 w-28 object-cover rounded-lg"
+                  style={{ maxHeight: '80px', borderRadius: '6px' }}
                 />
               )}
             </button>
