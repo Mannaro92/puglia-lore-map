@@ -161,19 +161,47 @@ html, body, #root, #__next {
   --glass-bg: 222.2 84% 4.9% / 0.95;
 }
 
-/* Map Controls & Floating Elements */
+/* Map Controls & Floating Elements - Updated with enhanced visibility for POI */
 .memoir-control {
   background: hsl(var(--glass-bg));
   backdrop-filter: blur(12px);
   border: 1px solid hsl(var(--glass-border));
   box-shadow: var(--shadow-map-control);
   border-radius: 8px;
+  z-index: 10; /* Ensure controls don't overlap POI */
 }
 
 .memoir-panel {
   background: var(--gradient-panel);
   border-left: 1px solid hsl(var(--panel-border));
   box-shadow: var(--shadow-panel);
+  z-index: 20; /* Higher than map controls */
+}
+
+/* Ensure map canvas and POI layers are properly visible */
+.maplibregl-canvas {
+  outline: none !important;
+}
+
+.maplibregl-map {
+  position: relative !important;
+  z-index: 1;
+}
+
+/* Ensure POI markers are visible above all map elements */
+.maplibregl-marker {
+  z-index: 100 !important;
+}
+
+/* Enhanced POI circle visibility */
+[data-layer-id="sites-circles"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+[data-layer-id="sites-labels"] {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Custom scrollbar for panels */

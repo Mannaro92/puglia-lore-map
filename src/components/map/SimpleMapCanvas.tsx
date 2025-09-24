@@ -50,11 +50,24 @@ export function SimpleMapCanvas({
             id: "sites-circles",
             type: "circle",
             source: "sites",
+            layout: {
+              "visibility": "visible"
+            },
             paint: {
-              "circle-radius": 6,
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                8, 8,
+                12, 10,
+                16, 12,
+                20, 16
+              ],
               "circle-color": "#339966",
-              "circle-stroke-width": 2,
-              "circle-stroke-color": "#ffffff"
+              "circle-stroke-width": 3,
+              "circle-stroke-color": "#ffffff",
+              "circle-opacity": 1,
+              "circle-stroke-opacity": 1
             }
           },
           {
@@ -62,24 +75,29 @@ export function SimpleMapCanvas({
             type: "symbol",
             source: "sites",
             layout: {
+              "visibility": "visible",
               "text-field": "{toponimo}",
-              "text-font": ["DM Sans Regular", "Noto Sans Regular"],
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
               "text-size": [
                 "interpolate",
                 ["linear"],
                 ["zoom"],
-                8, 8,
+                8, 10,
                 12, 12,
-                16, 16,
-                20, 20
+                16, 14,
+                20, 18
               ],
-              "text-offset": [0, 1.5],
-              "text-anchor": "top"
+              "text-offset": [0, 2],
+              "text-anchor": "top",
+              "text-allow-overlap": false,
+              "text-ignore-placement": false
             },
             paint: {
               "text-color": "#339966",
-              "text-halo-color": "#fff",
-              "text-halo-width": 2
+              "text-halo-color": "#ffffff",
+              "text-halo-width": 2,
+              "text-opacity": 1,
+              "text-halo-opacity": 1
             }
           }
         ]
@@ -111,30 +129,50 @@ export function SimpleMapCanvas({
         console.error('Errore init basemap:', e)
       }
       
-      // Load POI data
-      loadPOIData()
+      // Load POI data AFTER basemap is ready  
+      setTimeout(() => {
+        console.log('⏰ Scheduled POI data loading...');
+        loadPOIData()
+      }, 800)
       
       // Ensure POI layers are always on top after basemap changes
       setTimeout(() => {
         try {
-          // Move POI layers to top
+          console.log('🔝 Moving POI layers to top...');
+          // Move POI layers to top with force
           if (map.getLayer('sites-circles')) {
-            map.moveLayer('sites-circles')
+            map.moveLayer('sites-circles');
+            console.log('✅ Moved sites-circles layer to top');
+          } else {
+            console.error('❌ sites-circles layer not found');
           }
           if (map.getLayer('sites-labels')) {
-            map.moveLayer('sites-labels')
+            map.moveLayer('sites-labels');
+            console.log('✅ Moved sites-labels layer to top');
+          } else {
+            console.error('❌ sites-labels layer not found');
           }
+          
+          // Force layer visibility
+          map.setLayoutProperty('sites-circles', 'visibility', 'visible');
+          map.setLayoutProperty('sites-labels', 'visibility', 'visible');
+          console.log('🎯 Forced POI layer visibility');
+          
         } catch (e) {
-          // Layer reordering failed silently
+          console.error('❌ Layer reordering failed:', e);
         }
-      }, 500)
+      }, 1500) // Increased delay to ensure basemap is fully loaded
       
-      // Resize map after load to ensure proper rendering
-      setTimeout(() => map.resize(), 0)
+      // Additional check to ensure POI data is loaded after everything settles
+      setTimeout(() => {
+        console.log('🔄 Final POI data check and reload...');
+        loadPOIData()
+      }, 2500)
     })
 
     // Handle clicks on POI features
     map.on('click', 'sites-circles', (e) => {
+      console.log('🎯 POI circle clicked:', e.features?.[0]);
       if (e.features && e.features.length > 0) {
         onFeatureClick?.(e.features[0])
       }
@@ -142,6 +180,7 @@ export function SimpleMapCanvas({
 
     map.on('mouseenter', 'sites-circles', () => {
       map.getCanvas().style.cursor = 'pointer'
+      console.log('👆 Mouse entered POI circle');
     })
 
     map.on('mouseleave', 'sites-circles', () => {
@@ -184,12 +223,32 @@ export function SimpleMapCanvas({
         return;
       }
 
-      console.log('✅ POI data loaded, features count:', (geojson as any).features?.length || 0);
+      const featuresCount = (geojson as any).features?.length || 0;
+      console.log('✅ POI data loaded, features count:', featuresCount);
       
+      if (featuresCount === 0) {
+        console.warn('⚠️ No POI features found in response');
+        return;
+      }
+
+      // Verifica che il source esista prima di impostare i dati
       const source = mapRef.current.getSource('sites') as maplibregl.GeoJSONSource;
       if (source) {
         source.setData(geojson as any);
         console.log('🎯 POI data set to map source');
+        
+        // Debug: verifica che i layer siano visibili
+        setTimeout(() => {
+          const circleLayer = mapRef.current?.getLayer('sites-circles');
+          const labelLayer = mapRef.current?.getLayer('sites-labels');
+          console.log('🔍 Layer visibility check:', {
+            circleLayer: circleLayer ? 'exists' : 'missing',
+            labelLayer: labelLayer ? 'exists' : 'missing',
+            circleVisible: mapRef.current?.getLayoutProperty('sites-circles', 'visibility'),
+            labelVisible: mapRef.current?.getLayoutProperty('sites-labels', 'visibility')
+          });
+        }, 1000);
+        
       } else {
         console.error('❌ Sites source not found on map');
       }
