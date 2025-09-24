@@ -183,23 +183,23 @@ export default function EditPage() {
             <img 
               src={changesLogoWhite} 
               alt="CHANGES Logo" 
-              className="h-8 w-auto"
+              className="h-8 w-auto opacity-100"
             />
             <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-primary-foreground">MEMOIR GIS</h1>
-              <span className="text-xs text-primary-foreground/80">Editor POI</span>
+              <h1 className="text-xl font-bold text-white font-dm-sans drop-shadow-sm">MEMOIR GIS</h1>
+              <span className="text-xs text-white/90 font-dm-sans drop-shadow-sm">Editor POI</span>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <span className="text-sm text-primary-foreground/80">
+            <span className="text-sm text-white/90 font-dm-sans">
               Amministratore
             </span>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleLogout}
-              className="text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10"
+              className="border-2 border-white/80 text-white font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary bg-white/10 transition-all duration-200"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout

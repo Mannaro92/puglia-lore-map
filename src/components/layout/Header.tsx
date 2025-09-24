@@ -37,13 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
           <img 
             src={changesLogo} 
             alt="CHANGES Logo" 
-            className="h-8 w-auto"
+            className="h-8 w-auto opacity-100"
           />
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold font-dm-sans text-primary-foreground">
+            <h1 className="text-xl font-bold font-dm-sans text-white drop-shadow-sm">
               MEMOIR GIS
             </h1>
-            <span className="text-xs text-primary-foreground/80 font-dm-sans">
+            <span className="text-xs text-white/90 font-dm-sans drop-shadow-sm">
               powered by CHANGES
             </span>
           </div>
@@ -55,8 +55,8 @@ export const Header: React.FC<HeaderProps> = ({
             variant="outline"
             size="sm" 
             onClick={onToggleLayerControl}
-            className={`border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200 ${
-              showLayerControl ? 'bg-secondary text-secondary-foreground border-secondary' : ''
+            className={`border-2 border-white/80 text-white font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200 ${
+              showLayerControl ? 'bg-secondary text-secondary-foreground border-secondary' : 'bg-white/10'
             }`}
           >
             <Layers className="w-4 h-4 mr-2" />
@@ -65,14 +65,14 @@ export const Header: React.FC<HeaderProps> = ({
           
           {isAuthenticated ? (
             <>
-              <span className="text-sm text-primary-foreground font-dm-sans hidden sm:inline">
+              <span className="text-sm text-white font-dm-sans hidden sm:inline">
                 Amministratore
               </span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleEditMode}
-                className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200"
+                className="border-2 border-white/80 text-white font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary bg-white/10 transition-all duration-200"
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 Editor
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all duration-200"
+                className="border-2 border-white/80 text-white font-medium font-dm-sans hover:bg-destructive hover:text-destructive-foreground hover:border-destructive bg-white/10 transition-all duration-200"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/login')}
-              className="border-2 border-primary-foreground text-primary-foreground font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-200"
+              className="border-2 border-white/80 text-white font-medium font-dm-sans hover:bg-secondary hover:text-secondary-foreground hover:border-secondary bg-white/10 transition-all duration-200"
             >
               <LogIn className="w-4 h-4 mr-2" />
               Login
